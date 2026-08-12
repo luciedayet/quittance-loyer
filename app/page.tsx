@@ -1,18 +1,46 @@
-import { Button } from "@/components/ui/button"
+import Link from "next/link"
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { PROFILES } from "@/lib/profiles"
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
+    <div className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-8 p-6">
+      <div className="space-y-2">
+        <h1 className="font-heading text-3xl font-medium">
+          Quittances de loyer
+        </h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Choisissez une SCI pour gérer vos locataires et générer des quittances
+          de loyer au format PDF.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {PROFILES.map((profile) => (
+          <Link key={profile.id} href={`/${profile.id}`} className="group">
+            <Card className="h-full transition-colors group-hover:bg-muted/40">
+              <CardHeader>
+                <CardTitle>{profile.sciName}</CardTitle>
+                <CardDescription>{profile.city}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {profile.property.lines[0]}
+                </p>
+                <p className="mt-3 text-sm font-medium text-primary">
+                  Gérer les locataires →
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
       </div>
     </div>
   )
