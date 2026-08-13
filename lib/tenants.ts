@@ -8,9 +8,6 @@ export type Tenant = {
   chargesAmount: number
   avatarSeed: string
   createdAt: string
-}
-
-export type TenantWithQuittanceDates = Tenant & {
   firstQuittanceDate: string | null
   lastQuittanceDate: string | null
 }

@@ -30,6 +30,8 @@ type AddTenantDialogProps = {
     name: string
     rentAmount: number
     chargesAmount: number
+    firstQuittanceDate: string | null
+    lastQuittanceDate: string | null
   }) => void
 }
 
@@ -42,6 +44,8 @@ export function AddTenantDialog({
   const [name, setName] = useState("")
   const [rentAmount, setRentAmount] = useState("")
   const [chargesAmount, setChargesAmount] = useState("")
+  const [firstQuittanceDate, setFirstQuittanceDate] = useState("")
+  const [lastQuittanceDate, setLastQuittanceDate] = useState("")
   const [error, setError] = useState<string | null>(null)
 
   function resetForm() {
@@ -49,6 +53,8 @@ export function AddTenantDialog({
     setName("")
     setRentAmount("")
     setChargesAmount("")
+    setFirstQuittanceDate("")
+    setLastQuittanceDate("")
     setError(null)
   }
 
@@ -78,6 +84,8 @@ export function AddTenantDialog({
       name: name.trim(),
       rentAmount: rent,
       chargesAmount: charges,
+      firstQuittanceDate: firstQuittanceDate || null,
+      lastQuittanceDate: lastQuittanceDate || null,
     })
     resetForm()
     onOpenChange(false)
@@ -147,6 +155,29 @@ export function AddTenantDialog({
                 value={chargesAmount}
                 onChange={(event) => setChargesAmount(event.target.value)}
                 placeholder="50,00"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="tenant-first-quittance">
+                Première quittance
+              </Label>
+              <Input
+                id="tenant-first-quittance"
+                type="date"
+                value={firstQuittanceDate}
+                onChange={(event) => setFirstQuittanceDate(event.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="tenant-last-quittance">Dernière quittance</Label>
+              <Input
+                id="tenant-last-quittance"
+                type="date"
+                value={lastQuittanceDate}
+                onChange={(event) => setLastQuittanceDate(event.target.value)}
               />
             </div>
           </div>

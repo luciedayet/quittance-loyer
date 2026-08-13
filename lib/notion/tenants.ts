@@ -6,8 +6,9 @@ import {
   updatePage,
 } from "./client"
 import { getProfilePageId } from "./profiles"
-import { getQuittanceDateSummaryByBailleur } from "./quittances"
 import {
+  dateProperty,
+  getDate,
   getNumber,
   getRichText,
   getSelect,
@@ -19,11 +20,7 @@ import {
   titleProperty,
 } from "./properties"
 import type { NotionPage } from "./types"
-import type {
-  Tenant,
-  TenantCivility,
-  TenantWithQuittanceDates,
-} from "@/lib/tenants"
+import type { Tenant, TenantCivility } from "@/lib/tenants"
 
 function requireDataSourceId(): string {
   const dataSourceId = process.env.NOTION_LOCATAIRES_DATA_SOURCE_ID
@@ -52,6 +49,8 @@ function mapPageToTenant(page: NotionPage): Tenant {
     chargesAmount: getNumber(properties["Charges"]),
     avatarSeed: avatarSeed || avatarSeedFromName(name),
     createdAt: page.created_time,
+    firstQuittanceDate: getDate(properties["Première quittance"]) ?? null,
+    lastQuittanceDate: getDate(properties["Dernière quittance"]) ?? null,
   }
 }
 
@@ -60,34 +59,23 @@ export type NewTenantInput = {
   name: string
   rentAmount: number
   chargesAmount: number
+  firstQuittanceDate?: string | null
+  lastQuittanceDate?: string | null
 }
 
 export type TenantUpdateInput = Partial<NewTenantInput>
 
-export async function listTenants(
-  profileId: string,
-): Promise<TenantWithQuittanceDates[]> {
+export async function listTenants(profileId: string): Promise<Tenant[]> {
   const dataSourceId = requireDataSourceId()
   const bailleurPageId = await getProfilePageId(profileId)
   if (!bailleurPageId) return []
 
-  const [response, quittanceSummary] = await Promise.all([
-    queryDataSource(dataSourceId, {
-      filter: { property: "Bailleur", relation: { contains: bailleurPageId } },
-      sorts: [{ timestamp: "created_time", direction: "descending" }],
-    }),
-    getQuittanceDateSummaryByBailleur(bailleurPageId),
-  ])
-
-  return response.results.map((page) => {
-    const tenant = mapPageToTenant(page)
-    const summary = quittanceSummary.get(tenant.id)
-    return {
-      ...tenant,
-      firstQuittanceDate: summary?.first ?? null,
-      lastQuittanceDate: summary?.last ?? null,
-    }
+  const response = await queryDataSource(dataSourceId, {
+    filter: { property: "Bailleur", relation: { contains: bailleurPageId } },
+    sorts: [{ timestamp: "created_time", direction: "descending" }],
   })
+
+  return response.results.map(mapPageToTenant)
 }
 
 export async function getTenantById(
@@ -121,6 +109,8 @@ export async function createTenant(
       Charges: numberProperty(input.chargesAmount),
       Bailleur: relationProperty([bailleurPageId]),
       "Avatar seed": richTextProperty(avatarSeedFromName(input.name)),
+      "Première quittance": dateProperty(input.firstQuittanceDate ?? null),
+      "Dernière quittance": dateProperty(input.lastQuittanceDate ?? null),
     },
   })
 
@@ -148,6 +138,12 @@ export async function updateTenant(
   if (updates.chargesAmount !== undefined) {
     properties.Charges = numberProperty(updates.chargesAmount)
   }
+  if (updates.firstQuittanceDate !== undefined) {
+    properties["Première quittance"] = dateProperty(updates.firstQuittanceDate)
+  }
+  if (updates.lastQuittanceDate !== undefined) {
+    properties["Dernière quittance"] = dateProperty(updates.lastQuittanceDate)
+  }
 
   const page = await updatePage(tenantId, { properties })
   return mapPageToTenant(page)
@@ -155,4 +151,35 @@ export async function updateTenant(
 
 export async function removeTenant(tenantId: string): Promise<void> {
   await archivePage(tenantId)
+}
+
+export async function syncTenantQuittanceDates(
+  tenantId: string,
+  paymentDate: string,
+): Promise<void> {
+  const tenant = await getTenantById(tenantId)
+  if (!tenant) return
+
+  const nextFirst =
+    !tenant.firstQuittanceDate || paymentDate < tenant.firstQuittanceDate
+      ? paymentDate
+      : tenant.firstQuittanceDate
+  const nextLast =
+    !tenant.lastQuittanceDate || paymentDate > tenant.lastQuittanceDate
+      ? paymentDate
+      : tenant.lastQuittanceDate
+
+  if (
+    nextFirst === tenant.firstQuittanceDate &&
+    nextLast === tenant.lastQuittanceDate
+  ) {
+    return
+  }
+
+  await updatePage(tenantId, {
+    properties: {
+      "Première quittance": dateProperty(nextFirst),
+      "Dernière quittance": dateProperty(nextLast),
+    },
+  })
 }

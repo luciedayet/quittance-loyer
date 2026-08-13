@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { removeTenant, updateTenant } from "@/lib/notion/tenants"
+import { isValidIsoDate } from "@/lib/quittance"
 import type { TenantCivility } from "@/lib/tenants"
 
 function isValidCivility(value: unknown): value is TenantCivility {
@@ -14,7 +15,14 @@ type RouteParams = {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { tenantId } = await params
   const body = await request.json()
-  const { civility, name, rentAmount, chargesAmount } = body ?? {}
+  const {
+    civility,
+    name,
+    rentAmount,
+    chargesAmount,
+    firstQuittanceDate,
+    lastQuittanceDate,
+  } = body ?? {}
 
   const updates: Parameters<typeof updateTenant>[1] = {}
 
@@ -51,6 +59,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Charges invalides." }, { status: 400 })
     }
     updates.chargesAmount = chargesAmount
+  }
+
+  if (firstQuittanceDate !== undefined) {
+    if (firstQuittanceDate !== null && !isValidIsoDate(firstQuittanceDate)) {
+      return NextResponse.json(
+        { error: "Date de première quittance invalide." },
+        { status: 400 },
+      )
+    }
+    updates.firstQuittanceDate = firstQuittanceDate
+  }
+
+  if (lastQuittanceDate !== undefined) {
+    if (lastQuittanceDate !== null && !isValidIsoDate(lastQuittanceDate)) {
+      return NextResponse.json(
+        { error: "Date de dernière quittance invalide." },
+        { status: 400 },
+      )
+    }
+    updates.lastQuittanceDate = lastQuittanceDate
   }
 
   try {

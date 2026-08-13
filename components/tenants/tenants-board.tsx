@@ -79,6 +79,8 @@ export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
     name: string
     rentAmount: number
     chargesAmount: number
+    firstQuittanceDate: string | null
+    lastQuittanceDate: string | null
   }) {
     if (!editingTenant) return
     await updateTenant(editingTenant.id, update)

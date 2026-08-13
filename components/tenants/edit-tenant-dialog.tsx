@@ -27,6 +27,8 @@ type TenantUpdate = {
   name: string
   rentAmount: number
   chargesAmount: number
+  firstQuittanceDate: string | null
+  lastQuittanceDate: string | null
 }
 
 type EditTenantDialogProps = {
@@ -52,6 +54,12 @@ export function EditTenantDialog({
   const [chargesAmount, setChargesAmount] = useState(
     tenant ? String(tenant.chargesAmount) : "",
   )
+  const [firstQuittanceDate, setFirstQuittanceDate] = useState(
+    tenant?.firstQuittanceDate ?? "",
+  )
+  const [lastQuittanceDate, setLastQuittanceDate] = useState(
+    tenant?.lastQuittanceDate ?? "",
+  )
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [loadedTenantId, setLoadedTenantId] = useState<string | null>(null)
@@ -62,6 +70,8 @@ export function EditTenantDialog({
     setName(tenant.name)
     setRentAmount(String(tenant.rentAmount))
     setChargesAmount(String(tenant.chargesAmount))
+    setFirstQuittanceDate(tenant.firstQuittanceDate ?? "")
+    setLastQuittanceDate(tenant.lastQuittanceDate ?? "")
     setError(null)
   }
 
@@ -95,6 +105,8 @@ export function EditTenantDialog({
         name: name.trim(),
         rentAmount: rent,
         chargesAmount: charges,
+        firstQuittanceDate: firstQuittanceDate || null,
+        lastQuittanceDate: lastQuittanceDate || null,
       })
       onOpenChange(false)
     } catch (cause) {
@@ -169,6 +181,35 @@ export function EditTenantDialog({
                   value={chargesAmount}
                   onChange={(event) => setChargesAmount(event.target.value)}
                   placeholder="50,00"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-tenant-first-quittance">
+                  Première quittance
+                </Label>
+                <Input
+                  id="edit-tenant-first-quittance"
+                  type="date"
+                  value={firstQuittanceDate}
+                  onChange={(event) =>
+                    setFirstQuittanceDate(event.target.value)
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-tenant-last-quittance">
+                  Dernière quittance
+                </Label>
+                <Input
+                  id="edit-tenant-last-quittance"
+                  type="date"
+                  value={lastQuittanceDate}
+                  onChange={(event) =>
+                    setLastQuittanceDate(event.target.value)
+                  }
                 />
               </div>
             </div>

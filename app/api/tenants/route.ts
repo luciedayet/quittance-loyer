@@ -1,10 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { createTenant, listTenants } from "@/lib/notion/tenants"
+import { isValidIsoDate } from "@/lib/quittance"
 import type { TenantCivility } from "@/lib/tenants"
 
 function isValidCivility(value: unknown): value is TenantCivility {
   return value === "M." || value === "Mme"
+}
+
+function isValidOptionalDate(value: unknown): value is string | null | undefined {
+  if (value === undefined || value === null) return true
+  return typeof value === "string" && isValidIsoDate(value)
 }
 
 export async function GET(request: NextRequest) {
@@ -29,7 +35,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { profileId, civility, name, rentAmount, chargesAmount } = body ?? {}
+  const {
+    profileId,
+    civility,
+    name,
+    rentAmount,
+    chargesAmount,
+    firstQuittanceDate,
+    lastQuittanceDate,
+  } = body ?? {}
 
   if (
     typeof profileId !== "string" ||
@@ -41,7 +55,9 @@ export async function POST(request: NextRequest) {
     rentAmount <= 0 ||
     typeof chargesAmount !== "number" ||
     !Number.isFinite(chargesAmount) ||
-    chargesAmount < 0
+    chargesAmount < 0 ||
+    !isValidOptionalDate(firstQuittanceDate) ||
+    !isValidOptionalDate(lastQuittanceDate)
   ) {
     return NextResponse.json(
       { error: "Données de locataire invalides." },
@@ -55,6 +71,8 @@ export async function POST(request: NextRequest) {
       name: name.trim(),
       rentAmount,
       chargesAmount,
+      firstQuittanceDate: firstQuittanceDate ?? null,
+      lastQuittanceDate: lastQuittanceDate ?? null,
     })
     return NextResponse.json(tenant, { status: 201 })
   } catch (error) {

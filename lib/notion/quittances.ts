@@ -82,32 +82,3 @@ export async function listQuittancesForTenant(
 
   return pages.map(mapPageToQuittance)
 }
-
-export async function getQuittanceDateSummaryByBailleur(
-  bailleurPageId: string,
-): Promise<Map<string, { first: string; last: string }>> {
-  const summary = new Map<string, { first: string; last: string }>()
-
-  const dataSourceId = process.env.NOTION_QUITTANCES_DATA_SOURCE_ID
-  if (!dataSourceId) return summary
-
-  const pages = await queryAllPages(dataSourceId, {
-    filter: { property: "Bailleur", relation: { contains: bailleurPageId } },
-  })
-
-  for (const page of pages) {
-    const tenantId = getRelationIds(page.properties["Locataire"])[0]
-    const paymentDate = getDate(page.properties["Date de paiement"])
-    if (!tenantId || !paymentDate) continue
-
-    const existing = summary.get(tenantId)
-    if (!existing) {
-      summary.set(tenantId, { first: paymentDate, last: paymentDate })
-    } else {
-      if (paymentDate < existing.first) existing.first = paymentDate
-      if (paymentDate > existing.last) existing.last = paymentDate
-    }
-  }
-
-  return summary
-}

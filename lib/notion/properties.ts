@@ -58,6 +58,6 @@ export function relationProperty(pageIds: string[]): NotionPropertyValue {
   return { relation: pageIds.map((id) => ({ id })) }
 }
 
-export function dateProperty(value: string): NotionPropertyValue {
-  return { date: { start: value } }
+export function dateProperty(value: string | null): NotionPropertyValue {
+  return { date: value ? { start: value } : null }
 }

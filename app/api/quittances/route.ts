@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { listQuittancesForTenant, logQuittance } from "@/lib/notion/quittances"
+import { syncTenantQuittanceDates } from "@/lib/notion/tenants"
 
 export async function GET(request: NextRequest) {
   const tenantId = request.nextUrl.searchParams.get("tenantId")
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
       paymentDate,
       totalAmount,
     })
+    await syncTenantQuittanceDates(tenantId, paymentDate)
     return NextResponse.json({ ok: true })
   } catch (error) {
     return NextResponse.json(

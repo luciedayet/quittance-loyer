@@ -2,17 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react"
 
-import type {
-  Tenant,
-  TenantCivility,
-  TenantWithQuittanceDates,
-} from "@/lib/tenants"
+import type { Tenant, TenantCivility } from "@/lib/tenants"
 
 type NewTenantInput = {
   civility: TenantCivility
   name: string
   rentAmount: number
   chargesAmount: number
+  firstQuittanceDate?: string | null
+  lastQuittanceDate?: string | null
 }
 
 type TenantUpdateInput = Partial<NewTenantInput>
@@ -25,18 +23,16 @@ async function parseJsonOrThrow(response: Response) {
   return data
 }
 
-async function fetchTenants(
-  profileId: string,
-): Promise<TenantWithQuittanceDates[]> {
+async function fetchTenants(profileId: string): Promise<Tenant[]> {
   const response = await fetch(
     `/api/tenants?profileId=${encodeURIComponent(profileId)}`,
   )
   const data = await parseJsonOrThrow(response)
-  return data.tenants as TenantWithQuittanceDates[]
+  return data.tenants as Tenant[]
 }
 
 export function useTenants(profileId: string) {
-  const [tenants, setTenants] = useState<TenantWithQuittanceDates[]>([])
+  const [tenants, setTenants] = useState<Tenant[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
   const refresh = useCallback(async () => {
@@ -70,12 +66,7 @@ export function useTenants(profileId: string) {
         body: JSON.stringify({ profileId, ...input }),
       })
       const tenant = (await parseJsonOrThrow(response)) as Tenant
-      const tenantWithDates: TenantWithQuittanceDates = {
-        ...tenant,
-        firstQuittanceDate: null,
-        lastQuittanceDate: null,
-      }
-      setTenants((current) => [tenantWithDates, ...current])
+      setTenants((current) => [tenant, ...current])
       return tenant
     },
     [profileId],
