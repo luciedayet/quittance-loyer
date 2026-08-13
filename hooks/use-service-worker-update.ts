@@ -6,8 +6,10 @@ const SERVICE_WORKER_URL = "/sw.js"
 
 export function useServiceWorkerUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
+  const [showPopup, setShowPopup] = useState(true)
   const waitingWorkerRef = useRef<ServiceWorker | null>(null)
   const isApplyingUpdateRef = useRef(false)
+  const hasReloadedRef = useRef(false)
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return
@@ -17,6 +19,7 @@ export function useServiceWorkerUpdate() {
       if (!worker) return
       waitingWorkerRef.current = worker
       setUpdateAvailable(true)
+      setShowPopup(true)
     }
 
     function trackInstallingWorker(worker: ServiceWorker) {
@@ -39,7 +42,7 @@ export function useServiceWorkerUpdate() {
     let removeVisibilityListener: (() => void) | undefined
 
     navigator.serviceWorker
-      .register(SERVICE_WORKER_URL)
+      .register(SERVICE_WORKER_URL, { updateViaCache: "none" })
       .then((reg) => {
         if (reg.waiting && navigator.serviceWorker.controller) {
           handleWaitingWorker(reg.waiting)
@@ -61,6 +64,8 @@ export function useServiceWorkerUpdate() {
 
     function handleControllerChange() {
       if (!isApplyingUpdateRef.current) return
+      if (hasReloadedRef.current) return
+      hasReloadedRef.current = true
       window.location.reload()
     }
 
@@ -86,5 +91,19 @@ export function useServiceWorkerUpdate() {
     waitingWorker.postMessage({ type: "SKIP_WAITING" })
   }, [])
 
-  return { updateAvailable, applyUpdate }
+  const dismissToBanner = useCallback(() => {
+    setShowPopup(false)
+  }, [])
+
+  const reopenPopup = useCallback(() => {
+    setShowPopup(true)
+  }, [])
+
+  return {
+    updateAvailable,
+    showPopup,
+    applyUpdate,
+    dismissToBanner,
+    reopenPopup,
+  }
 }

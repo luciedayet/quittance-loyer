@@ -45,8 +45,10 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
-        <UpdateBanner />
+        <ThemeProvider>
+          <UpdateBanner />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )
