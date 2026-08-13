@@ -1,9 +1,13 @@
 "use client"
 
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Edit02Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { useState } from "react"
 
 import { AddTenantDialog } from "@/components/tenants/add-tenant-dialog"
+import { EditProfileDialog } from "@/components/tenants/edit-profile-dialog"
+import { EditTenantDialog } from "@/components/tenants/edit-tenant-dialog"
 import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -36,15 +40,56 @@ function TenantSkeleton() {
   )
 }
 
-export function TenantsBoard({ profile }: TenantsBoardProps) {
-  const { tenants, isLoaded, addTenant } = useTenants(profile.id)
+export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
+  const [profile, setProfile] = useState(initialProfile)
+  const { tenants, isLoaded, addTenant, updateTenant } = useTenants(
+    profile.id,
+  )
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [editProfileDialogOpen, setEditProfileDialogOpen] = useState(false)
   const [quittanceDialogOpen, setQuittanceDialogOpen] = useState(false)
+  const [editTenantDialogOpen, setEditTenantDialogOpen] = useState(false)
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null)
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null)
 
   function openQuittanceDialog(tenant: Tenant) {
     setSelectedTenant(tenant)
     setQuittanceDialogOpen(true)
+  }
+
+  function openEditTenantDialog(tenant: Tenant) {
+    setEditingTenant(tenant)
+    setEditTenantDialogOpen(true)
+  }
+
+  async function handleProfileUpdate(update: {
+    sciName: string
+    managerName: string
+    city: string
+    sciAddress: string[]
+    propertyShortAddress: string
+    propertyLines: string[]
+  }) {
+    const response = await fetch(`/api/profiles/${profile.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    })
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw new Error(data?.error ?? "Erreur lors de la mise à jour de la SCI.")
+    }
+    setProfile(data as Profile)
+  }
+
+  async function handleTenantUpdate(update: {
+    civility: Tenant["civility"]
+    name: string
+    rentAmount: number
+    chargesAmount: number
+  }) {
+    if (!editingTenant) return
+    await updateTenant(editingTenant.id, update)
   }
 
   return (
@@ -57,18 +102,27 @@ export function TenantsBoard({ profile }: TenantsBoardProps) {
           >
             ← Retour aux SCI
           </Link>
-          <div>
-            <h1 className="font-heading text-2xl font-medium">
-              {profile.sciName}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {profile.property.lines[0]} · {profile.city}
-            </p>
+          <div className="flex items-center gap-2">
+            <div>
+              <h1 className="font-heading text-2xl font-medium">
+                {profile.sciName}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {profile.property.lines[0]} · {profile.city}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="bg-secondary"
+              onClick={() => setEditProfileDialogOpen(true)}
+            >
+              <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+              <span className="sr-only">Modifier la SCI</span>
+            </Button>
           </div>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          Ajouter un locataire
-        </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -80,34 +134,52 @@ export function TenantsBoard({ profile }: TenantsBoardProps) {
 
         {isLoaded
           ? tenants.map((tenant) => (
-              <button
+              <Card
                 key={tenant.id}
-                type="button"
-                className="text-left"
+                role="button"
+                tabIndex={0}
                 onClick={() => openQuittanceDialog(tenant)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
+                    openQuittanceDialog(tenant)
+                  }
+                }}
+                className="relative h-full cursor-pointer text-left transition-colors hover:bg-muted/40"
               >
-                <Card className="h-full transition-colors hover:bg-muted/40">
-                  <CardHeader>
-                    <TenantAvatar
-                      seed={tenant.avatarSeed}
-                      name={tenant.name}
-                      size="lg"
-                    />
-                    <CardTitle>
-                      {tenant.civility} {tenant.name}
-                    </CardTitle>
-                    <CardDescription>
-                      Loyer {formatEuros(tenant.rentAmount)} € · Charges{" "}
-                      {formatEuros(tenant.chargesAmount)} €
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Cliquer pour générer une quittance
-                    </p>
-                  </CardContent>
-                </Card>
-              </button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="absolute top-4 right-4 bg-secondary"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    openEditTenantDialog(tenant)
+                  }}
+                >
+                  <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                  <span className="sr-only">Modifier {tenant.name}</span>
+                </Button>
+                <CardHeader>
+                  <TenantAvatar
+                    seed={tenant.avatarSeed}
+                    name={tenant.name}
+                    size="lg"
+                  />
+                  <CardTitle>
+                    {tenant.civility} {tenant.name}
+                  </CardTitle>
+                  <CardDescription>
+                    Loyer {formatEuros(tenant.rentAmount)} € · Charges{" "}
+                    {formatEuros(tenant.chargesAmount)} €
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Cliquer pour générer une quittance
+                  </p>
+                </CardContent>
+              </Card>
             ))
           : null}
 
@@ -133,6 +205,20 @@ export function TenantsBoard({ profile }: TenantsBoardProps) {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onSubmit={addTenant}
+      />
+
+      <EditProfileDialog
+        open={editProfileDialogOpen}
+        onOpenChange={setEditProfileDialogOpen}
+        profile={profile}
+        onSubmit={handleProfileUpdate}
+      />
+
+      <EditTenantDialog
+        open={editTenantDialogOpen}
+        onOpenChange={setEditTenantDialogOpen}
+        tenant={editingTenant}
+        onSubmit={handleTenantUpdate}
       />
 
       <QuittanceDialog

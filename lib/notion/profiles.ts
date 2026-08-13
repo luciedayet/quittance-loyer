@@ -1,5 +1,10 @@
-import { queryDataSource } from "./client"
-import { getRichText, getTitle } from "./properties"
+import { queryDataSource, updatePage } from "./client"
+import {
+  getRichText,
+  getTitle,
+  richTextProperty,
+  titleProperty,
+} from "./properties"
 import type { NotionPage } from "./types"
 import type { Profile } from "@/lib/profiles"
 
@@ -71,4 +76,53 @@ export async function getProfilePageId(
   })
 
   return response.results[0]?.id
+}
+
+export type ProfileUpdateInput = Partial<{
+  sciName: string
+  managerName: string
+  city: string
+  sciAddress: string[]
+  propertyShortAddress: string
+  propertyLines: string[]
+}>
+
+export async function updateProfile(
+  profileId: string,
+  updates: ProfileUpdateInput,
+): Promise<Profile> {
+  const pageId = await getProfilePageId(profileId)
+  if (!pageId) {
+    throw new Error(`Bailleur introuvable pour le profil "${profileId}".`)
+  }
+
+  const properties: Record<string, unknown> = {}
+
+  if (updates.sciName !== undefined) {
+    properties["Nom SCI"] = titleProperty(updates.sciName)
+  }
+  if (updates.managerName !== undefined) {
+    properties["Gerant"] = richTextProperty(updates.managerName)
+  }
+  if (updates.city !== undefined) {
+    properties["Ville"] = richTextProperty(updates.city)
+  }
+  if (updates.sciAddress !== undefined) {
+    properties["Adresse SCI"] = richTextProperty(
+      updates.sciAddress.join("\n"),
+    )
+  }
+  if (updates.propertyShortAddress !== undefined) {
+    properties["Adresse bien (courte)"] = richTextProperty(
+      updates.propertyShortAddress,
+    )
+  }
+  if (updates.propertyLines !== undefined) {
+    properties["Adresse bien (lignes)"] = richTextProperty(
+      updates.propertyLines.join("\n"),
+    )
+  }
+
+  const page = await updatePage(pageId, { properties })
+  return mapPageToProfile(page)
 }
