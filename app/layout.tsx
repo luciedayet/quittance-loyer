@@ -1,7 +1,8 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
+import { UpdateBanner } from "@/components/pwa/update-banner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
@@ -16,6 +17,15 @@ export const metadata: Metadata = {
   title: "Quittances de loyer",
   description:
     "Gérez vos locataires et générez des quittances de loyer pour vos SCI.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Quittances",
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#28251f",
 }
 
 export default function RootLayout({
@@ -36,6 +46,7 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>{children}</ThemeProvider>
+        <UpdateBanner />
       </body>
     </html>
   )
