@@ -1,12 +1,18 @@
-import { createPage } from "./client"
+import { createPage, queryAllPages } from "./client"
 import { getProfilePageId } from "./profiles"
 import {
   dateProperty,
+  getDate,
+  getNumber,
+  getRelationIds,
+  getRichText,
+  getTitle,
   numberProperty,
   relationProperty,
   richTextProperty,
   titleProperty,
 } from "./properties"
+import type { NotionPage } from "./types"
 
 export type NewQuittanceLogInput = {
   title: string
@@ -36,4 +42,72 @@ export async function logQuittance(
       "Montant total": numberProperty(input.totalAmount),
     },
   })
+}
+
+export type QuittanceRecord = {
+  id: string
+  title: string
+  tenantId: string
+  periodMonth: string
+  paymentDate: string | null
+  totalAmount: number
+  loggedAt: string
+}
+
+function mapPageToQuittance(page: NotionPage): QuittanceRecord {
+  const properties = page.properties
+  const tenantIds = getRelationIds(properties["Locataire"])
+
+  return {
+    id: page.id,
+    title: getTitle(properties["Titre"]),
+    tenantId: tenantIds[0] ?? "",
+    periodMonth: getRichText(properties["Periode"]),
+    paymentDate: getDate(properties["Date de paiement"]) ?? null,
+    totalAmount: getNumber(properties["Montant total"]),
+    loggedAt: page.created_time,
+  }
+}
+
+export async function listQuittancesForTenant(
+  tenantId: string,
+): Promise<QuittanceRecord[]> {
+  const dataSourceId = process.env.NOTION_QUITTANCES_DATA_SOURCE_ID
+  if (!dataSourceId) return []
+
+  const pages = await queryAllPages(dataSourceId, {
+    filter: { property: "Locataire", relation: { contains: tenantId } },
+    sorts: [{ property: "Date de paiement", direction: "descending" }],
+  })
+
+  return pages.map(mapPageToQuittance)
+}
+
+export async function getQuittanceDateSummaryByBailleur(
+  bailleurPageId: string,
+): Promise<Map<string, { first: string; last: string }>> {
+  const summary = new Map<string, { first: string; last: string }>()
+
+  const dataSourceId = process.env.NOTION_QUITTANCES_DATA_SOURCE_ID
+  if (!dataSourceId) return summary
+
+  const pages = await queryAllPages(dataSourceId, {
+    filter: { property: "Bailleur", relation: { contains: bailleurPageId } },
+  })
+
+  for (const page of pages) {
+    const tenantId = getRelationIds(page.properties["Locataire"])[0]
+    const paymentDate = getDate(page.properties["Date de paiement"])
+    if (!tenantId || !paymentDate) continue
+
+    const existing = summary.get(tenantId)
+    if (!existing) {
+      summary.set(tenantId, { first: paymentDate, last: paymentDate })
+    } else {
+      if (paymentDate < existing.first) existing.first = paymentDate
+      if (paymentDate > existing.last) existing.last = paymentDate
+    }
+  }
+
+  return summary
 }

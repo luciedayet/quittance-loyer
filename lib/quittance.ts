@@ -69,6 +69,18 @@ export function formatDateFr(date: Date): string {
   return dateFormatter.format(date)
 }
 
+export function formatIsoDate(value: string): string {
+  if (!isValidIsoDate(value)) return value
+
+  const [yearPart, monthPart, dayPart] = value.split("-")
+  const date = new Date(
+    Number(yearPart),
+    Number(monthPart) - 1,
+    Number(dayPart),
+  )
+  return formatDateFr(date)
+}
+
 export function monthFromDate(date: string): string {
   if (!isValidIsoDate(date)) return ""
   return date.slice(0, 7)

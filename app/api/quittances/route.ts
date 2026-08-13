@@ -1,6 +1,26 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-import { logQuittance } from "@/lib/notion/quittances"
+import { listQuittancesForTenant, logQuittance } from "@/lib/notion/quittances"
+
+export async function GET(request: NextRequest) {
+  const tenantId = request.nextUrl.searchParams.get("tenantId")
+  if (!tenantId) {
+    return NextResponse.json(
+      { error: "Le paramètre tenantId est requis." },
+      { status: 400 },
+    )
+  }
+
+  try {
+    const quittances = await listQuittancesForTenant(tenantId)
+    return NextResponse.json({ quittances })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erreur inconnue." },
+      { status: 500 },
+    )
+  }
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.json()

@@ -24,6 +24,13 @@ export function getSelect(
   return select?.name
 }
 
+export function getDate(
+  property: NotionPropertyValue | undefined,
+): string | undefined {
+  const date = property?.date as { start?: string } | null | undefined
+  return date?.start ?? undefined
+}
+
 export function getRelationIds(
   property: NotionPropertyValue | undefined,
 ): string[] {

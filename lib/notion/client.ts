@@ -49,6 +49,29 @@ export function queryDataSource(
   )
 }
 
+export async function queryAllPages(
+  dataSourceId: string,
+  body: Record<string, unknown> = {},
+): Promise<NotionPage[]> {
+  const pages: NotionPage[] = []
+  let cursor: string | undefined
+
+  do {
+    const response = await queryDataSource(dataSourceId, {
+      ...body,
+      start_cursor: cursor,
+    })
+    pages.push(...response.results)
+    cursor = response.has_more ? (response.next_cursor ?? undefined) : undefined
+  } while (cursor)
+
+  return pages
+}
+
+export function getPage(pageId: string): Promise<NotionPage> {
+  return notionFetch<NotionPage>(`/pages/${pageId}`, { method: "GET" })
+}
+
 export function createPage(
   body: Record<string, unknown>,
 ): Promise<NotionPage> {

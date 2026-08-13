@@ -8,7 +8,6 @@ import { useState } from "react"
 import { AddTenantDialog } from "@/components/tenants/add-tenant-dialog"
 import { EditProfileDialog } from "@/components/tenants/edit-profile-dialog"
 import { EditTenantDialog } from "@/components/tenants/edit-tenant-dialog"
-import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -19,7 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useTenants } from "@/hooks/use-tenants"
-import { formatEuros } from "@/lib/quittance"
+import { formatEuros, formatIsoDate } from "@/lib/quittance"
 import type { Profile } from "@/lib/profiles"
 import type { Tenant } from "@/lib/tenants"
 import { cn } from "@/lib/utils"
@@ -47,15 +46,8 @@ export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
   )
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editProfileDialogOpen, setEditProfileDialogOpen] = useState(false)
-  const [quittanceDialogOpen, setQuittanceDialogOpen] = useState(false)
   const [editTenantDialogOpen, setEditTenantDialogOpen] = useState(false)
-  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null)
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null)
-
-  function openQuittanceDialog(tenant: Tenant) {
-    setSelectedTenant(tenant)
-    setQuittanceDialogOpen(true)
-  }
 
   function openEditTenantDialog(tenant: Tenant) {
     setEditingTenant(tenant)
@@ -134,52 +126,61 @@ export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
 
         {isLoaded
           ? tenants.map((tenant) => (
-              <Card
+              <Link
                 key={tenant.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => openQuittanceDialog(tenant)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault()
-                    openQuittanceDialog(tenant)
-                  }
-                }}
-                className="relative h-full cursor-pointer text-left transition-colors hover:bg-muted/40"
+                href={`/${profile.id}/tenants/${tenant.id}`}
+                className="group relative block"
               >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="absolute top-4 right-4 bg-secondary"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    openEditTenantDialog(tenant)
-                  }}
-                >
-                  <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                  <span className="sr-only">Modifier {tenant.name}</span>
-                </Button>
-                <CardHeader>
-                  <TenantAvatar
-                    seed={tenant.avatarSeed}
-                    name={tenant.name}
-                    size="lg"
-                  />
-                  <CardTitle>
-                    {tenant.civility} {tenant.name}
-                  </CardTitle>
-                  <CardDescription>
-                    Loyer {formatEuros(tenant.rentAmount)} € · Charges{" "}
-                    {formatEuros(tenant.chargesAmount)} €
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Cliquer pour générer une quittance
-                  </p>
-                </CardContent>
-              </Card>
+                <Card className="relative h-full text-left transition-colors group-hover:bg-muted/40">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="absolute top-4 right-4 bg-secondary"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      openEditTenantDialog(tenant)
+                    }}
+                  >
+                    <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                    <span className="sr-only">Modifier {tenant.name}</span>
+                  </Button>
+                  <CardHeader>
+                    <TenantAvatar
+                      seed={tenant.avatarSeed}
+                      name={tenant.name}
+                      size="lg"
+                    />
+                    <CardTitle>
+                      {tenant.civility} {tenant.name}
+                    </CardTitle>
+                    <CardDescription>
+                      Loyer {formatEuros(tenant.rentAmount)} € · Charges{" "}
+                      {formatEuros(tenant.chargesAmount)} €
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-sm font-medium text-primary">
+                      Gérer les quittances →
+                    </p>
+                    <div className="text-xs text-muted-foreground">
+                      <p>
+                        Première quittance :{" "}
+                        {tenant.firstQuittanceDate
+                          ? formatIsoDate(tenant.firstQuittanceDate)
+                          : "—"}
+                      </p>
+                      <p>
+                        Dernière quittance :{" "}
+                        {tenant.lastQuittanceDate
+                          ? formatIsoDate(tenant.lastQuittanceDate)
+                          : "—"}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))
           : null}
 
@@ -219,13 +220,6 @@ export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
         onOpenChange={setEditTenantDialogOpen}
         tenant={editingTenant}
         onSubmit={handleTenantUpdate}
-      />
-
-      <QuittanceDialog
-        open={quittanceDialogOpen}
-        onOpenChange={setQuittanceDialogOpen}
-        profile={profile}
-        tenant={selectedTenant}
       />
     </div>
   )

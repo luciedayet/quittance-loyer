@@ -29,6 +29,7 @@ type QuittanceDialogProps = {
   onOpenChange: (open: boolean) => void
   profile: Profile
   tenant: Tenant | null
+  onLogged?: () => void
 }
 
 function todayIsoDate(): string {
@@ -44,6 +45,7 @@ export function QuittanceDialog({
   onOpenChange,
   profile,
   tenant,
+  onLogged,
 }: QuittanceDialogProps) {
   const [paymentDate, setPaymentDate] = useState(todayIsoDate())
   const [periodMonth, setPeriodMonth] = useState(monthFromDate(todayIsoDate()))
@@ -84,9 +86,11 @@ export function QuittanceDialog({
         paymentDate,
         totalAmount: fields.totalAmount,
       }),
-    }).catch(() => {
-      // Historique optionnel : une erreur ici ne doit pas bloquer le téléchargement.
     })
+      .then(() => onLogged?.())
+      .catch(() => {
+        // Historique optionnel : une erreur ici ne doit pas bloquer le téléchargement.
+      })
   }
 
   return (

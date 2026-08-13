@@ -1,5 +1,12 @@
-import { archivePage, createPage, queryDataSource, updatePage } from "./client"
+import {
+  archivePage,
+  createPage,
+  getPage,
+  queryDataSource,
+  updatePage,
+} from "./client"
 import { getProfilePageId } from "./profiles"
+import { getQuittanceDateSummaryByBailleur } from "./quittances"
 import {
   getNumber,
   getRichText,
@@ -12,7 +19,11 @@ import {
   titleProperty,
 } from "./properties"
 import type { NotionPage } from "./types"
-import type { Tenant, TenantCivility } from "@/lib/tenants"
+import type {
+  Tenant,
+  TenantCivility,
+  TenantWithQuittanceDates,
+} from "@/lib/tenants"
 
 function requireDataSourceId(): string {
   const dataSourceId = process.env.NOTION_LOCATAIRES_DATA_SOURCE_ID
@@ -53,17 +64,42 @@ export type NewTenantInput = {
 
 export type TenantUpdateInput = Partial<NewTenantInput>
 
-export async function listTenants(profileId: string): Promise<Tenant[]> {
+export async function listTenants(
+  profileId: string,
+): Promise<TenantWithQuittanceDates[]> {
   const dataSourceId = requireDataSourceId()
   const bailleurPageId = await getProfilePageId(profileId)
   if (!bailleurPageId) return []
 
-  const response = await queryDataSource(dataSourceId, {
-    filter: { property: "Bailleur", relation: { contains: bailleurPageId } },
-    sorts: [{ timestamp: "created_time", direction: "descending" }],
-  })
+  const [response, quittanceSummary] = await Promise.all([
+    queryDataSource(dataSourceId, {
+      filter: { property: "Bailleur", relation: { contains: bailleurPageId } },
+      sorts: [{ timestamp: "created_time", direction: "descending" }],
+    }),
+    getQuittanceDateSummaryByBailleur(bailleurPageId),
+  ])
 
-  return response.results.map(mapPageToTenant)
+  return response.results.map((page) => {
+    const tenant = mapPageToTenant(page)
+    const summary = quittanceSummary.get(tenant.id)
+    return {
+      ...tenant,
+      firstQuittanceDate: summary?.first ?? null,
+      lastQuittanceDate: summary?.last ?? null,
+    }
+  })
+}
+
+export async function getTenantById(
+  tenantId: string,
+): Promise<Tenant | undefined> {
+  try {
+    const page = await getPage(tenantId)
+    if (page.archived) return undefined
+    return mapPageToTenant(page)
+  } catch {
+    return undefined
+  }
 }
 
 export async function createTenant(
