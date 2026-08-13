@@ -1,0 +1,79 @@
+import { NextResponse, type NextRequest } from "next/server"
+
+import { removeTenant, updateTenant } from "@/lib/notion/tenants"
+import type { TenantCivility } from "@/lib/tenants"
+
+function isValidCivility(value: unknown): value is TenantCivility {
+  return value === "M." || value === "Mme"
+}
+
+type RouteParams = {
+  params: Promise<{ tenantId: string }>
+}
+
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const { tenantId } = await params
+  const body = await request.json()
+  const { civility, name, rentAmount, chargesAmount } = body ?? {}
+
+  const updates: Parameters<typeof updateTenant>[1] = {}
+
+  if (civility !== undefined) {
+    if (!isValidCivility(civility)) {
+      return NextResponse.json(
+        { error: "Civilité invalide." },
+        { status: 400 },
+      )
+    }
+    updates.civility = civility
+  }
+
+  if (name !== undefined) {
+    if (typeof name !== "string" || !name.trim()) {
+      return NextResponse.json({ error: "Nom invalide." }, { status: 400 })
+    }
+    updates.name = name.trim()
+  }
+
+  if (rentAmount !== undefined) {
+    if (typeof rentAmount !== "number" || !Number.isFinite(rentAmount) || rentAmount <= 0) {
+      return NextResponse.json({ error: "Loyer invalide." }, { status: 400 })
+    }
+    updates.rentAmount = rentAmount
+  }
+
+  if (chargesAmount !== undefined) {
+    if (
+      typeof chargesAmount !== "number" ||
+      !Number.isFinite(chargesAmount) ||
+      chargesAmount < 0
+    ) {
+      return NextResponse.json({ error: "Charges invalides." }, { status: 400 })
+    }
+    updates.chargesAmount = chargesAmount
+  }
+
+  try {
+    const tenant = await updateTenant(tenantId, updates)
+    return NextResponse.json(tenant)
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erreur inconnue." },
+      { status: 500 },
+    )
+  }
+}
+
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  const { tenantId } = await params
+
+  try {
+    await removeTenant(tenantId)
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erreur inconnue." },
+      { status: 500 },
+    )
+  }
+}

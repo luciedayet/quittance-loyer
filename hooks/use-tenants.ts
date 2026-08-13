@@ -1,72 +1,8 @@
 "use client"
 
-import { useCallback, useSyncExternalStore } from "react"
+import { useCallback, useEffect, useState } from "react"
 
-import {
-  createTenant,
-  readTenants,
-  writeTenants,
-  type Tenant,
-  type TenantCivility,
-} from "@/lib/tenants"
-
-const EMPTY_TENANTS: Tenant[] = []
-
-const listeners = new Set<() => void>()
-
-type SnapshotCache = {
-  serialized: string
-  tenants: Tenant[]
-}
-
-const snapshotCache = new Map<string, SnapshotCache>()
-
-function emitTenantsChange() {
-  listeners.forEach((listener) => listener())
-}
-
-function subscribeTenants(listener: () => void) {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
-
-function getTenantsStorageKey(profileId: string): string {
-  return `quittances.v1.tenants.${profileId}`
-}
-
-function getTenantsSnapshot(profileId: string): Tenant[] {
-  if (typeof window === "undefined") {
-    return EMPTY_TENANTS
-  }
-
-  const serialized =
-    window.localStorage.getItem(getTenantsStorageKey(profileId)) ?? "[]"
-  const cached = snapshotCache.get(profileId)
-
-  if (cached && cached.serialized === serialized) {
-    return cached.tenants
-  }
-
-  const tenants =
-    serialized === "[]" && !window.localStorage.getItem(getTenantsStorageKey(profileId))
-      ? EMPTY_TENANTS
-      : readTenants(profileId)
-
-  snapshotCache.set(profileId, { serialized, tenants })
-  return tenants
-}
-
-function invalidateTenantsCache(profileId: string) {
-  snapshotCache.delete(profileId)
-}
-
-function getIsLoadedSnapshot(): boolean {
-  return typeof window !== "undefined"
-}
-
-function getIsLoadedServerSnapshot(): boolean {
-  return false
-}
+import type { Tenant, TenantCivility } from "@/lib/tenants"
 
 type NewTenantInput = {
   civility: TenantCivility
@@ -75,59 +11,86 @@ type NewTenantInput = {
   chargesAmount: number
 }
 
+type TenantUpdateInput = Partial<NewTenantInput>
+
+async function parseJsonOrThrow(response: Response) {
+  const data = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(data?.error ?? "Une erreur est survenue.")
+  }
+  return data
+}
+
+async function fetchTenants(profileId: string): Promise<Tenant[]> {
+  const response = await fetch(
+    `/api/tenants?profileId=${encodeURIComponent(profileId)}`,
+  )
+  const data = await parseJsonOrThrow(response)
+  return data.tenants as Tenant[]
+}
+
 export function useTenants(profileId: string) {
-  const getSnapshot = useCallback(
-    () => getTenantsSnapshot(profileId),
-    [profileId],
-  )
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [isLoaded, setIsLoaded] = useState(false)
 
-  const tenants = useSyncExternalStore(
-    subscribeTenants,
-    getSnapshot,
-    () => EMPTY_TENANTS,
-  )
+  const refresh = useCallback(async () => {
+    setTenants(await fetchTenants(profileId))
+  }, [profileId])
 
-  const isLoaded = useSyncExternalStore(
-    subscribeTenants,
-    getIsLoadedSnapshot,
-    getIsLoadedServerSnapshot,
-  )
+  useEffect(() => {
+    let cancelled = false
 
-  const persist = useCallback(
-    (nextTenants: Tenant[]) => {
-      writeTenants(profileId, nextTenants)
-      invalidateTenantsCache(profileId)
-      emitTenantsChange()
-    },
-    [profileId],
-  )
+    fetchTenants(profileId)
+      .then((nextTenants) => {
+        if (!cancelled) setTenants(nextTenants)
+      })
+      .catch(() => {
+        if (!cancelled) setTenants([])
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoaded(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [profileId])
 
   const addTenant = useCallback(
-    (input: NewTenantInput) => {
-      const tenant = createTenant(input)
-      persist([tenant, ...tenants])
+    async (input: NewTenantInput) => {
+      const response = await fetch("/api/tenants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId, ...input }),
+      })
+      const tenant = (await parseJsonOrThrow(response)) as Tenant
+      setTenants((current) => [tenant, ...current])
       return tenant
     },
-    [persist, tenants],
+    [profileId],
   )
 
   const updateTenant = useCallback(
-    (id: string, updates: Partial<Omit<Tenant, "id" | "createdAt">>) => {
-      persist(
-        tenants.map((tenant) =>
-          tenant.id === id ? { ...tenant, ...updates } : tenant,
-        ),
+    async (id: string, updates: TenantUpdateInput) => {
+      const response = await fetch(`/api/tenants/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      })
+      const tenant = (await parseJsonOrThrow(response)) as Tenant
+      setTenants((current) =>
+        current.map((existing) => (existing.id === id ? tenant : existing)),
       )
+      return tenant
     },
-    [persist, tenants],
+    [],
   )
 
-  const removeTenant = useCallback(
-    (id: string) => {
-      persist(tenants.filter((tenant) => tenant.id !== id))
-    },
-    [persist, tenants],
-  )
+  const removeTenant = useCallback(async (id: string) => {
+    const response = await fetch(`/api/tenants/${id}`, { method: "DELETE" })
+    await parseJsonOrThrow(response)
+    setTenants((current) => current.filter((tenant) => tenant.id !== id))
+  }, [])
 
   return {
     tenants,
@@ -135,5 +98,6 @@ export function useTenants(profileId: string) {
     addTenant,
     updateTenant,
     removeTenant,
+    refresh,
   }
 }

@@ -7,9 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { PROFILES } from "@/lib/profiles"
+import { getProfiles } from "@/lib/profiles"
 
-export default function Page() {
+export const dynamic = "force-dynamic"
+
+export default async function Page() {
+  const profiles = await getProfiles()
+
   return (
     <div className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-8 p-6">
       <div className="space-y-2">
@@ -23,7 +27,7 @@ export default function Page() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {PROFILES.map((profile) => (
+        {profiles.map((profile) => (
           <Link key={profile.id} href={`/${profile.id}`} className="group">
             <Card className="h-full transition-colors group-hover:bg-muted/40">
               <CardHeader>

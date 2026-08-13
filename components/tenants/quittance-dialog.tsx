@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { useQuittancePdf } from "@/components/pdf/use-quittance-pdf"
 import {
   buildQuittanceFields,
+  buildQuittanceFilename,
   formatEuros,
   isValidIsoDate,
   monthFromDate,
@@ -71,6 +72,21 @@ export function QuittanceDialog({
   async function handleDownload() {
     if (!fields) return
     await download(fields)
+
+    fetch("/api/quittances", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: buildQuittanceFilename(fields),
+        profileId: profile.id,
+        tenantId: fields.tenant.id,
+        periodMonth,
+        paymentDate,
+        totalAmount: fields.totalAmount,
+      }),
+    }).catch(() => {
+      // Historique optionnel : une erreur ici ne doit pas bloquer le téléchargement.
+    })
   }
 
   return (
