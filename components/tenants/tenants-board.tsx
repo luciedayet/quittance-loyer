@@ -5,6 +5,7 @@ import { Edit02Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { useState } from "react"
 
+import { LogoutButton } from "@/components/auth/logout-button"
 import { AddTenantDialog } from "@/components/tenants/add-tenant-dialog"
 import { EditProfileDialog } from "@/components/tenants/edit-profile-dialog"
 import { EditTenantDialog } from "@/components/tenants/edit-tenant-dialog"
@@ -117,6 +118,7 @@ export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
             </Button>
           </div>
         </div>
+        <LogoutButton />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

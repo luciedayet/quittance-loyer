@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { requireSession } from "@/lib/auth/session"
 import { updateProfile } from "@/lib/notion/profiles"
 
 type RouteParams = {
@@ -11,6 +12,9 @@ function isStringArray(value: unknown): value is string[] {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const session = await requireSession()
+  if (session instanceof NextResponse) return session
+
   const { profileId } = await params
   const body = await request.json()
   const {

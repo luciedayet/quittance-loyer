@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { requireSession } from "@/lib/auth/session"
 import { createTenant, listTenants } from "@/lib/notion/tenants"
 import { isValidIsoDate } from "@/lib/quittance"
 import type { TenantCivility } from "@/lib/tenants"
@@ -14,6 +15,9 @@ function isValidOptionalDate(value: unknown): value is string | null | undefined
 }
 
 export async function GET(request: NextRequest) {
+  const session = await requireSession()
+  if (session instanceof NextResponse) return session
+
   const profileId = request.nextUrl.searchParams.get("profileId")
   if (!profileId) {
     return NextResponse.json(
@@ -34,6 +38,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await requireSession()
+  if (session instanceof NextResponse) return session
+
   const body = await request.json()
   const {
     profileId,

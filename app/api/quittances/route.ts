@@ -1,9 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { requireSession } from "@/lib/auth/session"
 import { listQuittancesForTenant, logQuittance } from "@/lib/notion/quittances"
 import { syncTenantQuittanceDates } from "@/lib/notion/tenants"
 
 export async function GET(request: NextRequest) {
+  const session = await requireSession()
+  if (session instanceof NextResponse) return session
+
   const tenantId = request.nextUrl.searchParams.get("tenantId")
   if (!tenantId) {
     return NextResponse.json(
@@ -24,6 +28,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await requireSession()
+  if (session instanceof NextResponse) return session
+
   const body = await request.json()
   const { title, profileId, tenantId, periodMonth, paymentDate, totalAmount } =
     body ?? {}

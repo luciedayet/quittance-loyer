@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { requireSession } from "@/lib/auth/session"
 import { removeTenant, updateTenant } from "@/lib/notion/tenants"
 import { isValidIsoDate } from "@/lib/quittance"
 import type { TenantCivility } from "@/lib/tenants"
@@ -13,6 +14,9 @@ type RouteParams = {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const session = await requireSession()
+  if (session instanceof NextResponse) return session
+
   const { tenantId } = await params
   const body = await request.json()
   const {
@@ -93,6 +97,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  const session = await requireSession()
+  if (session instanceof NextResponse) return session
+
   const { tenantId } = await params
 
   try {
