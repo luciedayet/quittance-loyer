@@ -10,7 +10,7 @@ function isValidEmail(value: unknown): value is string {
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
-  const { email, password, name, registrationSecret } = body ?? {}
+  const { email, password, firstName, lastName, registrationSecret } = body ?? {}
 
   const expectedSecret = process.env.AUTH_REGISTRATION_SECRET
   if (!expectedSecret) {
@@ -38,7 +38,10 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     )
   }
-  if (typeof name !== "string" || !name.trim()) {
+  if (typeof firstName !== "string" || !firstName.trim()) {
+    return NextResponse.json({ error: "Prénom invalide." }, { status: 400 })
+  }
+  if (typeof lastName !== "string" || !lastName.trim()) {
     return NextResponse.json({ error: "Nom invalide." }, { status: 400 })
   }
 
@@ -55,13 +58,19 @@ export async function POST(request: NextRequest) {
     const user = await createUser({
       email,
       passwordHash,
-      name: name.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
     })
 
     await createSessionCookie({ userId: user.id, email: user.email })
 
     return NextResponse.json(
-      { id: user.id, email: user.email, name: user.name },
+      {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
       { status: 201 },
     )
   } catch (error) {

@@ -34,7 +34,12 @@ export async function POST(request: NextRequest) {
 
     await createSessionCookie({ userId: user.id, email: user.email })
 
-    return NextResponse.json({ id: user.id, email: user.email, name: user.name })
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },

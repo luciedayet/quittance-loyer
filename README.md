@@ -39,6 +39,7 @@ L'application est protégée par une authentification par token JWT (session sto
 1. Dans Notion, crée une base **"Utilisateurs"** (sous-base de la page **"Quittances Loyer"**, connectée à l'intégration comme les autres bases) avec les propriétés suivantes :
    - `Email` : titre (title)
    - `Mot de passe` : texte (rich text) — stocke le hash du mot de passe, jamais le mot de passe en clair
+   - `Prénom` : texte (rich text)
    - `Nom` : texte (rich text)
 2. Renseigne dans `.env.local` :
    - `NOTION_UTILISATEURS_DATA_SOURCE_ID` : ID de la data source de cette base.

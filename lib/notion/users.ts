@@ -16,7 +16,8 @@ export type NotionUser = {
   id: string
   email: string
   passwordHash: string
-  name: string
+  firstName: string
+  lastName: string
 }
 
 function normalizeEmail(email: string): string {
@@ -29,7 +30,8 @@ function mapPageToUser(page: NotionPage): NotionUser {
     id: page.id,
     email: getTitle(properties["Email"]),
     passwordHash: getRichText(properties["Mot de passe"]),
-    name: getRichText(properties["Nom"]),
+    firstName: getRichText(properties["Prénom"]),
+    lastName: getRichText(properties["Nom"]),
   }
 }
 
@@ -49,7 +51,8 @@ export async function getUserByEmail(
 export type NewUserInput = {
   email: string
   passwordHash: string
-  name: string
+  firstName: string
+  lastName: string
 }
 
 export async function createUser(input: NewUserInput): Promise<NotionUser> {
@@ -60,7 +63,8 @@ export async function createUser(input: NewUserInput): Promise<NotionUser> {
     properties: {
       Email: titleProperty(normalizeEmail(input.email)),
       "Mot de passe": richTextProperty(input.passwordHash),
-      Nom: richTextProperty(input.name),
+      Prénom: richTextProperty(input.firstName),
+      Nom: richTextProperty(input.lastName),
     },
   })
 

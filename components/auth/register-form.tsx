@@ -3,13 +3,15 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import { PasswordInput } from "@/components/auth/password-input"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 export function RegisterForm() {
   const router = useRouter()
-  const [name, setName] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -32,7 +34,13 @@ export function RegisterForm() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, registrationSecret }),
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          password,
+          registrationSecret,
+        }),
       })
       const data = await response.json().catch(() => null)
 
@@ -54,15 +62,26 @@ export function RegisterForm() {
 
   return (
     <form className="grid gap-4" onSubmit={handleSubmit}>
-      <div className="grid gap-2">
-        <Label htmlFor="register-name">Nom</Label>
-        <Input
-          id="register-name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          required
-          autoFocus
-        />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor="register-first-name">Prénom</Label>
+          <Input
+            id="register-first-name"
+            value={firstName}
+            onChange={(event) => setFirstName(event.target.value)}
+            required
+            autoFocus
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="register-last-name">Nom</Label>
+          <Input
+            id="register-last-name"
+            value={lastName}
+            onChange={(event) => setLastName(event.target.value)}
+            required
+          />
+        </div>
       </div>
       <div className="grid gap-2">
         <Label htmlFor="register-email">Email</Label>
@@ -77,9 +96,8 @@ export function RegisterForm() {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="register-password">Mot de passe</Label>
-        <Input
+        <PasswordInput
           id="register-password"
-          type="password"
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
@@ -91,9 +109,8 @@ export function RegisterForm() {
         <Label htmlFor="register-confirm-password">
           Confirmer le mot de passe
         </Label>
-        <Input
+        <PasswordInput
           id="register-confirm-password"
-          type="password"
           autoComplete="new-password"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
