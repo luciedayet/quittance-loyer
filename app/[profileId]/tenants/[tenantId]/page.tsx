@@ -11,12 +11,15 @@ export const dynamic = "force-dynamic"
 
 type TenantQuittancesPageProps = {
   params: Promise<{ profileId: string; tenantId: string }>
+  searchParams: Promise<{ view?: string }>
 }
 
 export default async function TenantQuittancesPage({
   params,
+  searchParams,
 }: TenantQuittancesPageProps) {
   const { profileId, tenantId } = await params
+  const { view } = await searchParams
   const session = await getSession()
   if (!session) notFound()
 
@@ -39,6 +42,9 @@ export default async function TenantQuittancesPage({
       initialQuittances={quittances}
       readOnly={session.role === "locataire"}
       canPreviewAsLocataire={session.role === "admin"}
+      initialPreviewAsLocataire={
+        session.role === "admin" && view === "locataire"
+      }
     />
   )
 }

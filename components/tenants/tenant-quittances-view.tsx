@@ -26,6 +26,8 @@ type TenantQuittancesViewProps = {
   readOnly?: boolean
   /** Permet à l'admin de prévisualiser la vue "locataire" (lecture seule). */
   canPreviewAsLocataire?: boolean
+  /** Ouvre directement sur la vue "locataire" (ex : depuis le menu réglages admin). */
+  initialPreviewAsLocataire?: boolean
 }
 
 function periodLabel(periodMonth: string): string {
@@ -44,10 +46,13 @@ export function TenantQuittancesView({
   initialQuittances,
   readOnly = false,
   canPreviewAsLocataire = false,
+  initialPreviewAsLocataire = false,
 }: TenantQuittancesViewProps) {
   const [quittances, setQuittances] = useState(initialQuittances)
   const [quittanceDialogOpen, setQuittanceDialogOpen] = useState(false)
-  const [previewAsLocataire, setPreviewAsLocataire] = useState(false)
+  const [previewAsLocataire, setPreviewAsLocataire] = useState(
+    initialPreviewAsLocataire,
+  )
 
   const effectiveReadOnly =
     readOnly || (canPreviewAsLocataire && previewAsLocataire)

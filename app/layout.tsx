@@ -50,7 +50,7 @@ export default async function RootLayout({
     >
       <body>
         <ThemeProvider>
-          {session ? <Navbar /> : null}
+          {session ? <Navbar role={session.role} /> : null}
           {children}
         </ThemeProvider>
         <UpdateBanner />
