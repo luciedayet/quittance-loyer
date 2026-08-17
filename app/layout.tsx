@@ -2,10 +2,14 @@ import type { Metadata, Viewport } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
+import { ImpersonationBanner } from "@/components/layout/impersonation-banner"
 import { Navbar } from "@/components/layout/navbar"
 import { UpdateBanner } from "@/components/pwa/update-banner"
 import { ThemeProvider } from "@/components/theme-provider"
+import { getImpersonation } from "@/lib/auth/impersonation"
 import { getSession } from "@/lib/auth/session"
+import { getProfileById } from "@/lib/profiles"
+import { getTenantById } from "@/lib/notion/tenants"
 import { cn } from "@/lib/utils"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
@@ -30,12 +34,35 @@ export const viewport: Viewport = {
   themeColor: "#28251f",
 }
 
+async function getImpersonationLabel(
+  isAdmin: boolean,
+): Promise<string | null> {
+  const impersonation = await getImpersonation(isAdmin)
+  if (!impersonation) return null
+
+  const profile = await getProfileById(impersonation.profileId)
+  const sciName = profile?.sciName ?? "SCI inconnue"
+
+  if (impersonation.role === "bailleur") {
+    return `Vue admin : tu navigues en tant que bailleur de ${sciName}.`
+  }
+
+  const tenant = await getTenantById(impersonation.tenantId)
+  const tenantName = tenant
+    ? `${tenant.civility} ${tenant.name}`
+    : "locataire"
+  return `Vue admin : tu navigues en tant que ${tenantName} (${sciName}).`
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   const session = await getSession()
+  const impersonationLabel = await getImpersonationLabel(
+    session?.role === "admin",
+  )
 
   return (
     <html
@@ -50,7 +77,15 @@ export default async function RootLayout({
     >
       <body>
         <ThemeProvider>
-          {session ? <Navbar role={session.role} /> : null}
+          {session ? (
+            <Navbar
+              role={session.role}
+              impersonating={Boolean(impersonationLabel)}
+            />
+          ) : null}
+          {impersonationLabel ? (
+            <ImpersonationBanner label={impersonationLabel} />
+          ) : null}
           {children}
         </ThemeProvider>
         <UpdateBanner />

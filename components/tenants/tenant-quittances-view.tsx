@@ -23,11 +23,8 @@ type TenantQuittancesViewProps = {
   profile: Profile
   tenant: Tenant
   initialQuittances: QuittanceRecord[]
+  /** Vrai pour un vrai locataire ou un admin qui l'impersonne. */
   readOnly?: boolean
-  /** Permet à l'admin de prévisualiser la vue "locataire" (lecture seule). */
-  canPreviewAsLocataire?: boolean
-  /** Ouvre directement sur la vue "locataire" (ex : depuis le menu réglages admin). */
-  initialPreviewAsLocataire?: boolean
 }
 
 function periodLabel(periodMonth: string): string {
@@ -45,17 +42,9 @@ export function TenantQuittancesView({
   tenant,
   initialQuittances,
   readOnly = false,
-  canPreviewAsLocataire = false,
-  initialPreviewAsLocataire = false,
 }: TenantQuittancesViewProps) {
   const [quittances, setQuittances] = useState(initialQuittances)
   const [quittanceDialogOpen, setQuittanceDialogOpen] = useState(false)
-  const [previewAsLocataire, setPreviewAsLocataire] = useState(
-    initialPreviewAsLocataire,
-  )
-
-  const effectiveReadOnly =
-    readOnly || (canPreviewAsLocataire && previewAsLocataire)
 
   const refreshQuittances = useCallback(async () => {
     const response = await fetch(
@@ -69,47 +58,14 @@ export function TenantQuittancesView({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          {readOnly ? (
-            <span />
-          ) : (
-            <Link
-              href={`/${profile.id}`}
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-            >
-              ← Retour aux locataires
-            </Link>
-          )}
-
-          {canPreviewAsLocataire ? (
-            <div className="inline-flex items-center gap-1 rounded-2xl bg-muted p-1 text-sm">
-              <button
-                type="button"
-                onClick={() => setPreviewAsLocataire(false)}
-                className={cn(
-                  "rounded-xl px-3 py-1 font-medium transition-colors",
-                  !previewAsLocataire
-                    ? "bg-background shadow-sm"
-                    : "text-muted-foreground",
-                )}
-              >
-                Vue bailleur
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreviewAsLocataire(true)}
-                className={cn(
-                  "rounded-xl px-3 py-1 font-medium transition-colors",
-                  previewAsLocataire
-                    ? "bg-background shadow-sm"
-                    : "text-muted-foreground",
-                )}
-              >
-                Vue locataire
-              </button>
-            </div>
-          ) : null}
-        </div>
+        {readOnly ? null : (
+          <Link
+            href={`/${profile.id}`}
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+          >
+            ← Retour aux locataires
+          </Link>
+        )}
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -124,7 +80,7 @@ export function TenantQuittancesView({
               </p>
             </div>
           </div>
-          {effectiveReadOnly ? null : (
+          {readOnly ? null : (
             <Button onClick={() => setQuittanceDialogOpen(true)}>
               Générer une quittance
             </Button>
@@ -170,7 +126,7 @@ export function TenantQuittancesView({
         ) : null}
       </Card>
 
-      {effectiveReadOnly ? null : (
+      {readOnly ? null : (
         <QuittanceDialog
           open={quittanceDialogOpen}
           onOpenChange={setQuittanceDialogOpen}

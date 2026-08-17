@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { getImpersonation } from "@/lib/auth/impersonation"
 import { getSession } from "@/lib/auth/session"
 import { getProfiles } from "@/lib/profiles"
 
@@ -18,6 +19,14 @@ export default async function Page() {
   if (session?.role === "bailleur") redirect(`/${session.profileId}`)
   if (session?.role === "locataire") {
     redirect(`/${session.profileId}/tenants/${session.tenantId}`)
+  }
+
+  const impersonation = await getImpersonation(session?.role === "admin")
+  if (impersonation?.role === "bailleur") {
+    redirect(`/${impersonation.profileId}`)
+  }
+  if (impersonation?.role === "locataire") {
+    redirect(`/${impersonation.profileId}/tenants/${impersonation.tenantId}`)
   }
 
   const profiles = await getProfiles()

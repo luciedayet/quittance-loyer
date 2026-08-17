@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 
 import { assertCanViewTenant } from "@/lib/auth/ownership"
 import { TenantQuittancesView } from "@/components/tenants/tenant-quittances-view"
+import { getImpersonation } from "@/lib/auth/impersonation"
 import { getSession } from "@/lib/auth/session"
 import { getProfileById } from "@/lib/profiles"
 import { getTenantById } from "@/lib/notion/tenants"
@@ -11,15 +12,12 @@ export const dynamic = "force-dynamic"
 
 type TenantQuittancesPageProps = {
   params: Promise<{ profileId: string; tenantId: string }>
-  searchParams: Promise<{ view?: string }>
 }
 
 export default async function TenantQuittancesPage({
   params,
-  searchParams,
 }: TenantQuittancesPageProps) {
   const { profileId, tenantId } = await params
-  const { view } = await searchParams
   const session = await getSession()
   if (!session) notFound()
 
@@ -35,16 +33,18 @@ export default async function TenantQuittancesPage({
 
   const quittances = await listQuittancesForTenant(tenantId)
 
+  const impersonation = await getImpersonation(session.role === "admin")
+  const isImpersonatingThisTenant =
+    impersonation?.role === "locataire" &&
+    impersonation.profileId === profileId &&
+    impersonation.tenantId === tenantId
+
   return (
     <TenantQuittancesView
       profile={profile}
       tenant={tenant}
       initialQuittances={quittances}
-      readOnly={session.role === "locataire"}
-      canPreviewAsLocataire={session.role === "admin"}
-      initialPreviewAsLocataire={
-        session.role === "admin" && view === "locataire"
-      }
+      readOnly={session.role === "locataire" || isImpersonatingThisTenant}
     />
   )
 }

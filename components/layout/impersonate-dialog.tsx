@@ -37,6 +37,8 @@ export function ImpersonateDialog() {
   const [profileId, setProfileId] = useState("")
   const [tenants, setTenants] = useState<Tenant[] | null>(null)
   const [tenantId, setTenantId] = useState("")
+  const [starting, setStarting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -75,6 +77,7 @@ export function ImpersonateDialog() {
     setProfileId("")
     setTenantId("")
     setTenants(null)
+    setError(null)
   }
 
   function handleProfileChange(value: string | null) {
@@ -83,16 +86,42 @@ export function ImpersonateDialog() {
     setTenants(null)
   }
 
-  function handleView() {
+  async function handleView() {
     if (!profileId) return
-    if (mode === "bailleur") {
-      router.push(`/${profileId}`)
-    } else {
-      if (!tenantId) return
-      router.push(`/${profileId}/tenants/${tenantId}?view=locataire`)
+    if (mode === "locataire" && !tenantId) return
+
+    setStarting(true)
+    setError(null)
+    try {
+      const payload =
+        mode === "bailleur"
+          ? { role: mode, profileId }
+          : { role: mode, profileId, tenantId }
+      const response = await fetch("/api/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(
+          data?.error ?? "Impossible de démarrer l'impersonation.",
+        )
+      }
+
+      const target =
+        mode === "bailleur"
+          ? `/${profileId}`
+          : `/${profileId}/tenants/${tenantId}`
+      setOpen(false)
+      resetSelection()
+      router.push(target)
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inconnue.")
+    } finally {
+      setStarting(false)
     }
-    setOpen(false)
-    resetSelection()
   }
 
   return (
@@ -193,15 +222,19 @@ export function ImpersonateDialog() {
               </Select>
             </div>
           ) : null}
+
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </div>
 
         <DialogFooter>
           <Button
             type="button"
             onClick={handleView}
-            disabled={!profileId || (mode === "locataire" && !tenantId)}
+            disabled={
+              starting || !profileId || (mode === "locataire" && !tenantId)
+            }
           >
-            Voir cette vue
+            {starting ? "Chargement…" : "Voir cette vue"}
           </Button>
         </DialogFooter>
       </DialogContent>

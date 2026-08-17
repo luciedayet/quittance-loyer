@@ -25,6 +25,8 @@ import { cn } from "@/lib/utils"
 
 type TenantsBoardProps = {
   profile: Profile
+  /** Masque le lien retour vers la liste des SCI (impersonation admin). */
+  hideBackLink?: boolean
 }
 
 function TenantSkeleton() {
@@ -39,7 +41,10 @@ function TenantSkeleton() {
   )
 }
 
-export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
+export function TenantsBoard({
+  profile: initialProfile,
+  hideBackLink = false,
+}: TenantsBoardProps) {
   const [profile, setProfile] = useState(initialProfile)
   const { tenants, isLoaded, addTenant, updateTenant, refresh } = useTenants(
     profile.id,
@@ -89,12 +94,14 @@ export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
       <div className="space-y-2">
-        <Link
-          href="/"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-        >
-          ← Retour aux SCI
-        </Link>
+        {hideBackLink ? null : (
+          <Link
+            href="/"
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+          >
+            ← Retour aux SCI
+          </Link>
+        )}
         <div className="flex items-center gap-2">
           <div>
             <h1 className="font-heading text-2xl font-medium">
