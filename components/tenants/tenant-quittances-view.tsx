@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useCallback, useState } from "react"
 
+import { LogoutButton } from "@/components/auth/logout-button"
 import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -23,6 +24,7 @@ type TenantQuittancesViewProps = {
   profile: Profile
   tenant: Tenant
   initialQuittances: QuittanceRecord[]
+  readOnly?: boolean
 }
 
 function periodLabel(periodMonth: string): string {
@@ -39,6 +41,7 @@ export function TenantQuittancesView({
   profile,
   tenant,
   initialQuittances,
+  readOnly = false,
 }: TenantQuittancesViewProps) {
   const [quittances, setQuittances] = useState(initialQuittances)
   const [quittanceDialogOpen, setQuittanceDialogOpen] = useState(false)
@@ -55,12 +58,19 @@ export function TenantQuittancesView({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
       <div className="space-y-2">
-        <Link
-          href={`/${profile.id}`}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-        >
-          ← Retour aux locataires
-        </Link>
+        <div className="flex items-center justify-between">
+          {readOnly ? (
+            <span />
+          ) : (
+            <Link
+              href={`/${profile.id}`}
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              ← Retour aux locataires
+            </Link>
+          )}
+          <LogoutButton />
+        </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -75,9 +85,11 @@ export function TenantQuittancesView({
               </p>
             </div>
           </div>
-          <Button onClick={() => setQuittanceDialogOpen(true)}>
-            Générer une quittance
-          </Button>
+          {readOnly ? null : (
+            <Button onClick={() => setQuittanceDialogOpen(true)}>
+              Générer une quittance
+            </Button>
+          )}
         </div>
       </div>
 
@@ -119,13 +131,15 @@ export function TenantQuittancesView({
         ) : null}
       </Card>
 
-      <QuittanceDialog
-        open={quittanceDialogOpen}
-        onOpenChange={setQuittanceDialogOpen}
-        profile={profile}
-        tenant={tenant}
-        onLogged={refreshQuittances}
-      />
+      {readOnly ? null : (
+        <QuittanceDialog
+          open={quittanceDialogOpen}
+          onOpenChange={setQuittanceDialogOpen}
+          profile={profile}
+          tenant={tenant}
+          onLogged={refreshQuittances}
+        />
+      )}
     </div>
   )
 }

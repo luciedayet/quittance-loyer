@@ -34,17 +34,29 @@ Les données (bailleurs, locataires, historique des quittances) sont stockées d
 
 ## Authentification
 
-L'application est protégée par une authentification par token JWT (session stockée dans un cookie `httpOnly`) adossée à une base Notion **"Utilisateurs"**.
+L'application est protégée par une authentification par token JWT (session stockée dans un cookie `httpOnly`), avec 3 rôles :
 
-1. Dans Notion, crée une base **"Utilisateurs"** (sous-base de la page **"Quittances Loyer"**, connectée à l'intégration comme les autres bases) avec les propriétés suivantes :
+- **Admin** : accès à toutes les SCI (page `/`).
+- **Bailleur** : compte lié à une seule SCI (`Bailleur` dans "Utilisateurs"), scopé à `/[profileId]`. `/` le redirige directement vers son espace.
+- **Locataire** : compte lié à un seul locataire (email + mot de passe stockés directement sur la fiche du locataire dans la base "Locataires"), scopé en lecture seule à `/[profileId]/tenants/[tenantId]` — il ne voit que l'historique de ses propres quittances, sans pouvoir en générer.
+
+Il n'y a pas d'inscription publique : chaque compte est provisionné manuellement dans Notion (email + rôle, sans mot de passe), avec un code d'activation à usage unique. L'utilisateur va ensuite sur `/activation`, saisit son email + le code reçu, et définit son mot de passe.
+
+### Comptes Admin / Bailleur
+
+1. Dans Notion, la base **"Utilisateurs"** (sous-page de "Quittances Loyer") a les propriétés :
    - `Email` : titre (title)
-   - `Mot de passe` : texte (rich text) — stocke le hash du mot de passe, jamais le mot de passe en clair
-   - `Prénom` : texte (rich text)
-   - `Nom` : texte (rich text)
+   - `Mot de passe` : texte (rich text) — hash du mot de passe, vide tant que le compte n'est pas activé
+   - `Prénom`, `Nom` : texte (rich text)
+   - `Rôle` : select (`Admin` ou `Bailleur`)
+   - `Bailleur` : relation vers la base "Bailleurs" — la SCI gérée (uniquement pour le rôle `Bailleur`)
+   - `Code d'activation` : texte (rich text) — code à usage unique, effacé après activation
 2. Renseigne dans `.env.local` :
    - `NOTION_UTILISATEURS_DATA_SOURCE_ID` : ID de la data source de cette base.
    - `JWT_SECRET` : chaîne aléatoire utilisée pour signer les tokens de session (`openssl rand -base64 32`).
-   - `AUTH_REGISTRATION_SECRET` : code d'invitation requis pour créer un compte sur `/register`. Sans ce code, l'inscription est désactivée — cela évite que n'importe qui puisse créer un compte et accéder aux données de tes SCI.
-3. Va sur `/register`, saisis le code d'invitation pour créer ton compte, puis connecte-toi sur `/login`.
 
-Toutes les pages et routes API (sauf `/login`, `/register` et `/api/auth/*`) exigent une session valide ; les visiteurs non connectés sont redirigés vers `/login`.
+### Comptes Locataire
+
+La base **"Locataires"** a 3 propriétés supplémentaires : `Email` (email), `Code de vérification` (rich text), `Mot de passe` (rich text, hash). Depuis la fiche d'un locataire (`Modifier` dans le tableau de bord de la SCI), le bailleur/admin renseigne l'email du locataire et clique sur **"Générer un code d'activation"** : le code s'affiche une seule fois et doit être transmis manuellement (SMS, email...) au locataire, qui l'utilise sur `/activation`.
+
+Toutes les pages et routes API (sauf `/login`, `/activation` et `/api/auth/*`) exigent une session valide et vérifient le rôle/la propriété des données ; les visiteurs non connectés sont redirigés vers `/login`.

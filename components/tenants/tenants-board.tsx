@@ -42,7 +42,7 @@ function TenantSkeleton() {
 
 export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
   const [profile, setProfile] = useState(initialProfile)
-  const { tenants, isLoaded, addTenant, updateTenant } = useTenants(
+  const { tenants, isLoaded, addTenant, updateTenant, refresh } = useTenants(
     profile.id,
   )
   const [addDialogOpen, setAddDialogOpen] = useState(false)
@@ -224,6 +224,7 @@ export function TenantsBoard({ profile: initialProfile }: TenantsBoardProps) {
         onOpenChange={setEditTenantDialogOpen}
         tenant={editingTenant}
         onSubmit={handleTenantUpdate}
+        onInvited={refresh}
       />
     </div>
   )

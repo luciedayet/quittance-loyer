@@ -1,4 +1,4 @@
-import { queryDataSource, updatePage } from "./client"
+import { getPage, queryDataSource, updatePage } from "./client"
 import {
   getRichText,
   getTitle,
@@ -64,6 +64,18 @@ export async function getProfileById(
 
   const page = response.results[0]
   return page ? mapPageToProfile(page) : undefined
+}
+
+export async function getProfileByPageId(
+  pageId: string,
+): Promise<Profile | undefined> {
+  try {
+    const page = await getPage(pageId)
+    if (page.archived) return undefined
+    return mapPageToProfile(page)
+  } catch {
+    return undefined
+  }
 }
 
 export async function getProfilePageId(

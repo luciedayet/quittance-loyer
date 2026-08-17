@@ -8,8 +8,11 @@ import {
 import { getProfilePageId } from "./profiles"
 import {
   dateProperty,
+  emailProperty,
   getDate,
+  getEmail,
   getNumber,
+  getRelationIds,
   getRichText,
   getSelect,
   getTitle,
@@ -21,6 +24,7 @@ import {
 } from "./properties"
 import type { NotionPage } from "./types"
 import type { Tenant, TenantCivility } from "@/lib/tenants"
+import { generateActivationCode } from "@/lib/auth/activation-code"
 
 function requireDataSourceId(): string {
   const dataSourceId = process.env.NOTION_LOCATAIRES_DATA_SOURCE_ID
@@ -51,6 +55,9 @@ function mapPageToTenant(page: NotionPage): Tenant {
     createdAt: page.created_time,
     firstQuittanceDate: getDate(properties["Première quittance"]) ?? null,
     lastQuittanceDate: getDate(properties["Dernière quittance"]) ?? null,
+    email: getEmail(properties["Email"]),
+    verificationCode: getRichText(properties["Code de vérification"]) || null,
+    hasAccount: Boolean(getRichText(properties["Mot de passe"])),
   }
 }
 
@@ -151,6 +158,82 @@ export async function updateTenant(
 
 export async function removeTenant(tenantId: string): Promise<void> {
   await archivePage(tenantId)
+}
+
+export type TenantAuth = {
+  id: string
+  email: string
+  passwordHash: string
+  verificationCode: string | null
+  profilePageId: string
+}
+
+export async function getTenantAuthByEmail(
+  email: string,
+): Promise<TenantAuth | undefined> {
+  const dataSourceId = requireDataSourceId()
+  const response = await queryDataSource(dataSourceId, {
+    filter: {
+      property: "Email",
+      email: { equals: email.trim().toLowerCase() },
+    },
+    page_size: 1,
+  })
+
+  const page = response.results[0]
+  if (!page) return undefined
+
+  const profilePageId = getRelationIds(page.properties["Bailleur"])[0]
+  if (!profilePageId) return undefined
+
+  return {
+    id: page.id,
+    email: getEmail(page.properties["Email"]) ?? "",
+    passwordHash: getRichText(page.properties["Mot de passe"]),
+    verificationCode: getRichText(page.properties["Code de vérification"]) || null,
+    profilePageId,
+  }
+}
+
+export async function getTenantOwnerProfilePageId(
+  tenantId: string,
+): Promise<string | undefined> {
+  try {
+    const page = await getPage(tenantId)
+    if (page.archived) return undefined
+    return getRelationIds(page.properties["Bailleur"])[0]
+  } catch {
+    return undefined
+  }
+}
+
+export async function inviteTenant(
+  tenantId: string,
+  email: string,
+): Promise<{ email: string; verificationCode: string }> {
+  const verificationCode = generateActivationCode()
+
+  await updatePage(tenantId, {
+    properties: {
+      Email: emailProperty(email.trim().toLowerCase()),
+      "Code de vérification": richTextProperty(verificationCode),
+      "Mot de passe": richTextProperty(""),
+    },
+  })
+
+  return { email: email.trim().toLowerCase(), verificationCode }
+}
+
+export async function activateTenant(
+  tenantId: string,
+  passwordHash: string,
+): Promise<void> {
+  await updatePage(tenantId, {
+    properties: {
+      "Mot de passe": richTextProperty(passwordHash),
+      "Code de vérification": richTextProperty(""),
+    },
+  })
 }
 
 export async function syncTenantQuittanceDates(

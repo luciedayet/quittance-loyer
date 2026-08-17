@@ -1,24 +1,27 @@
 import Link from "next/link"
 
-import { LoginForm } from "@/components/auth/login-form"
+import { ActivationForm } from "@/components/auth/activation-form"
 
-export default function LoginPage() {
+export default function ActivationPage() {
   return (
     <div className="mx-auto flex min-h-svh w-full max-w-sm flex-col justify-center gap-8 p-6">
       <div className="space-y-2 text-center">
-        <h1 className="font-heading text-2xl font-medium">Connexion</h1>
+        <h1 className="font-heading text-2xl font-medium">
+          Première connexion
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Connectez-vous pour gérer vos quittances de loyer.
+          Entre l&apos;email et le code d&apos;activation que tu as reçus pour
+          définir ton mot de passe.
         </p>
       </div>
-      <LoginForm />
+      <ActivationForm />
       <p className="text-center text-sm text-muted-foreground">
-        Première connexion ?{" "}
+        Déjà activé ton compte ?{" "}
         <Link
-          href="/activation"
+          href="/login"
           className="text-primary underline-offset-4 hover:underline"
         >
-          Active ton compte avec ton code
+          Se connecter
         </Link>
       </p>
     </div>

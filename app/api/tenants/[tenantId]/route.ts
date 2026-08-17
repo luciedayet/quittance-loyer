@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { assertCanManageTenant } from "@/lib/auth/ownership"
 import { requireSession } from "@/lib/auth/session"
 import { removeTenant, updateTenant } from "@/lib/notion/tenants"
 import { isValidIsoDate } from "@/lib/quittance"
@@ -18,6 +19,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (session instanceof NextResponse) return session
 
   const { tenantId } = await params
+
+  const ownershipError = await assertCanManageTenant(session, tenantId)
+  if (ownershipError) return ownershipError
+
   const body = await request.json()
   const {
     civility,
@@ -101,6 +106,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (session instanceof NextResponse) return session
 
   const { tenantId } = await params
+
+  const ownershipError = await assertCanManageTenant(session, tenantId)
+  if (ownershipError) return ownershipError
 
   try {
     await removeTenant(tenantId)

@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-import { verifySessionToken } from "@/lib/auth/jwt"
+import { verifySessionToken, type SessionPayload } from "@/lib/auth/jwt"
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session"
 
 function isAuthPage(pathname: string): boolean {
-  return pathname === "/login" || pathname === "/register"
+  return pathname === "/login" || pathname === "/activation"
+}
+
+function homeFor(session: SessionPayload): string {
+  if (session.role === "bailleur") return `/${session.profileId}`
+  if (session.role === "locataire") {
+    return `/${session.profileId}/tenants/${session.tenantId}`
+  }
+  return "/"
 }
 
 export default async function proxy(request: NextRequest) {
@@ -19,25 +27,49 @@ export default async function proxy(request: NextRequest) {
 
   if (isAuthPage(pathname)) {
     if (session) {
-      return NextResponse.redirect(new URL("/", request.url))
+      return NextResponse.redirect(new URL(homeFor(session), request.url))
     }
     return NextResponse.next()
   }
 
-  if (session) {
+  if (!session) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Authentification requise." },
+        { status: 401 },
+      )
+    }
+    const loginUrl = new URL("/login", request.url)
+    loginUrl.searchParams.set("next", pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  if (session.role === "admin") {
     return NextResponse.next()
   }
 
+  // Les routes API appliquent elles-mêmes les vérifications de propriété
+  // (defense in depth) ; le proxy ne fait que router les pages.
   if (pathname.startsWith("/api/")) {
-    return NextResponse.json(
-      { error: "Authentification requise." },
-      { status: 401 },
-    )
+    return NextResponse.next()
   }
 
-  const loginUrl = new URL("/login", request.url)
-  loginUrl.searchParams.set("next", pathname)
-  return NextResponse.redirect(loginUrl)
+  if (session.role === "bailleur") {
+    if (pathname === "/") {
+      return NextResponse.redirect(new URL(homeFor(session), request.url))
+    }
+    const [rootSegment] = pathname.split("/").filter(Boolean)
+    if (rootSegment !== session.profileId) {
+      return NextResponse.redirect(new URL(homeFor(session), request.url))
+    }
+    return NextResponse.next()
+  }
+
+  // role === "locataire" : accès à sa seule page de quittances.
+  if (pathname !== homeFor(session)) {
+    return NextResponse.redirect(new URL(homeFor(session), request.url))
+  }
+  return NextResponse.next()
 }
 
 export const config = {

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-import { requireSession } from "@/lib/auth/session"
+import { forbiddenResponse, requireSession } from "@/lib/auth/session"
 import { updateProfile } from "@/lib/notion/profiles"
 
 type RouteParams = {
@@ -16,6 +16,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (session instanceof NextResponse) return session
 
   const { profileId } = await params
+
+  if (session.role === "locataire") return forbiddenResponse()
+  if (session.role === "bailleur" && session.profileId !== profileId) {
+    return forbiddenResponse()
+  }
+
   const body = await request.json()
   const {
     sciName,

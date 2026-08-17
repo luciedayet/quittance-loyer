@@ -42,3 +42,7 @@ export async function requireSession(): Promise<SessionPayload | NextResponse> {
   }
   return session
 }
+
+export function forbiddenResponse(): NextResponse {
+  return NextResponse.json({ error: "Accès refusé." }, { status: 403 })
+}

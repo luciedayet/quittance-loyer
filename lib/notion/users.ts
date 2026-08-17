@@ -1,5 +1,11 @@
-import { createPage, queryDataSource } from "./client"
-import { getRichText, getTitle, richTextProperty, titleProperty } from "./properties"
+import { queryDataSource, updatePage } from "./client"
+import {
+  getRelationIds,
+  getRichText,
+  getSelect,
+  getTitle,
+  richTextProperty,
+} from "./properties"
 import type { NotionPage } from "./types"
 
 function requireDataSourceId(): string {
@@ -12,12 +18,18 @@ function requireDataSourceId(): string {
   return dataSourceId
 }
 
+export type UserRole = "admin" | "bailleur"
+
 export type NotionUser = {
   id: string
   email: string
   passwordHash: string
   firstName: string
   lastName: string
+  role: UserRole
+  /** ID (page Notion) du Bailleur géré, uniquement pour le rôle "bailleur". */
+  profilePageId: string | null
+  activationCode: string | null
 }
 
 function normalizeEmail(email: string): string {
@@ -26,12 +38,18 @@ function normalizeEmail(email: string): string {
 
 function mapPageToUser(page: NotionPage): NotionUser {
   const properties = page.properties
+  const role: UserRole = getSelect(properties["Rôle"]) === "Admin" ? "admin" : "bailleur"
+  const activationCode = getRichText(properties["Code d'activation"])
+
   return {
     id: page.id,
     email: getTitle(properties["Email"]),
     passwordHash: getRichText(properties["Mot de passe"]),
     firstName: getRichText(properties["Prénom"]),
     lastName: getRichText(properties["Nom"]),
+    role,
+    profilePageId: getRelationIds(properties["Bailleur"])[0] ?? null,
+    activationCode: activationCode || null,
   }
 }
 
@@ -48,25 +66,14 @@ export async function getUserByEmail(
   return page ? mapPageToUser(page) : undefined
 }
 
-export type NewUserInput = {
-  email: string
-  passwordHash: string
-  firstName: string
-  lastName: string
-}
-
-export async function createUser(input: NewUserInput): Promise<NotionUser> {
-  const dataSourceId = requireDataSourceId()
-
-  const page = await createPage({
-    parent: { type: "data_source_id", data_source_id: dataSourceId },
+export async function activateUser(
+  userId: string,
+  passwordHash: string,
+): Promise<void> {
+  await updatePage(userId, {
     properties: {
-      Email: titleProperty(normalizeEmail(input.email)),
-      "Mot de passe": richTextProperty(input.passwordHash),
-      Prénom: richTextProperty(input.firstName),
-      Nom: richTextProperty(input.lastName),
+      "Mot de passe": richTextProperty(passwordHash),
+      "Code d'activation": richTextProperty(""),
     },
   })
-
-  return mapPageToUser(page)
 }

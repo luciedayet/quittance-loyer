@@ -1,35 +1,46 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-import { verifyPassword } from "@/lib/auth/password"
+import { hashPassword } from "@/lib/auth/password"
 import { createSessionCookie } from "@/lib/auth/session"
 import { getProfileByPageId } from "@/lib/notion/profiles"
-import { getTenantAuthByEmail } from "@/lib/notion/tenants"
-import { getUserByEmail } from "@/lib/notion/users"
+import { activateTenant, getTenantAuthByEmail } from "@/lib/notion/tenants"
+import { activateUser, getUserByEmail } from "@/lib/notion/users"
 
-const INVALID_CREDENTIALS = "Email ou mot de passe incorrect."
-const NOT_ACTIVATED =
-  "Ce compte n'est pas encore activé. Utilise ton code d'activation sur la page \"Première connexion\"."
+const INVALID_CODE = "Email ou code d'activation invalide."
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
-  const { email, password } = body ?? {}
+  const { email, code, password } = body ?? {}
 
-  if (typeof email !== "string" || typeof password !== "string") {
+  if (
+    typeof email !== "string" ||
+    typeof code !== "string" ||
+    typeof password !== "string"
+  ) {
     return NextResponse.json(
-      { error: "Email et mot de passe requis." },
+      { error: "Champs requis manquants." },
+      { status: 400 },
+    )
+  }
+  if (password.length < 8) {
+    return NextResponse.json(
+      { error: "Le mot de passe doit contenir au moins 8 caractères." },
       { status: 400 },
     )
   }
 
+  const submittedCode = code.trim().toUpperCase()
+
   try {
     const user = await getUserByEmail(email)
-    if (user) {
-      if (!user.passwordHash) {
-        return NextResponse.json({ error: NOT_ACTIVATED }, { status: 401 })
-      }
-      if (!(await verifyPassword(password, user.passwordHash))) {
-        return NextResponse.json({ error: INVALID_CREDENTIALS }, { status: 401 })
-      }
+    if (
+      user &&
+      !user.passwordHash &&
+      user.activationCode &&
+      user.activationCode === submittedCode
+    ) {
+      const passwordHash = await hashPassword(password)
+      await activateUser(user.id, passwordHash)
 
       if (user.role === "admin") {
         await createSessionCookie({
@@ -37,7 +48,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           email: user.email,
         })
-        return NextResponse.json({ redirectTo: "/" })
+        return NextResponse.json({ redirectTo: "/" }, { status: 201 })
       }
 
       const profile = user.profilePageId
@@ -56,17 +67,18 @@ export async function POST(request: NextRequest) {
         email: user.email,
         profileId: profile.id,
       })
-      return NextResponse.json({ redirectTo: `/${profile.id}` })
+      return NextResponse.json({ redirectTo: `/${profile.id}` }, { status: 201 })
     }
 
     const tenant = await getTenantAuthByEmail(email)
-    if (tenant) {
-      if (!tenant.passwordHash) {
-        return NextResponse.json({ error: NOT_ACTIVATED }, { status: 401 })
-      }
-      if (!(await verifyPassword(password, tenant.passwordHash))) {
-        return NextResponse.json({ error: INVALID_CREDENTIALS }, { status: 401 })
-      }
+    if (
+      tenant &&
+      !tenant.passwordHash &&
+      tenant.verificationCode &&
+      tenant.verificationCode === submittedCode
+    ) {
+      const passwordHash = await hashPassword(password)
+      await activateTenant(tenant.id, passwordHash)
 
       const profile = await getProfileByPageId(tenant.profilePageId)
       if (!profile) {
@@ -82,12 +94,13 @@ export async function POST(request: NextRequest) {
         email: tenant.email,
         profileId: profile.id,
       })
-      return NextResponse.json({
-        redirectTo: `/${profile.id}/tenants/${tenant.id}`,
-      })
+      return NextResponse.json(
+        { redirectTo: `/${profile.id}/tenants/${tenant.id}` },
+        { status: 201 },
+      )
     }
 
-    return NextResponse.json({ error: INVALID_CREDENTIALS }, { status: 401 })
+    return NextResponse.json({ error: INVALID_CODE }, { status: 401 })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },

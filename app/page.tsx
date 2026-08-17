@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 
 import { LogoutButton } from "@/components/auth/logout-button"
 import {
@@ -8,11 +9,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { getSession } from "@/lib/auth/session"
 import { getProfiles } from "@/lib/profiles"
 
 export const dynamic = "force-dynamic"
 
 export default async function Page() {
+  const session = await getSession()
+  if (session?.role === "bailleur") redirect(`/${session.profileId}`)
+  if (session?.role === "locataire") {
+    redirect(`/${session.profileId}/tenants/${session.tenantId}`)
+  }
+
   const profiles = await getProfiles()
 
   return (

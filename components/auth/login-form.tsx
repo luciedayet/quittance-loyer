@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { PasswordInput } from "@/components/auth/password-input"
@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label"
 
 export function LoginForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -33,8 +32,7 @@ export function LoginForm() {
         throw new Error(data?.error ?? "Erreur de connexion.")
       }
 
-      const next = searchParams.get("next") ?? "/"
-      router.push(next)
+      router.push(data.redirectTo ?? "/")
       router.refresh()
     } catch (cause) {
       setError(

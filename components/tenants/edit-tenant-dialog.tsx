@@ -36,6 +36,7 @@ type EditTenantDialogProps = {
   onOpenChange: (open: boolean) => void
   tenant: Tenant | null
   onSubmit: (update: TenantUpdate) => Promise<void>
+  onInvited?: () => void
 }
 
 export function EditTenantDialog({
@@ -43,6 +44,7 @@ export function EditTenantDialog({
   onOpenChange,
   tenant,
   onSubmit,
+  onInvited,
 }: EditTenantDialogProps) {
   const [civility, setCivility] = useState<TenantCivility>(
     tenant?.civility ?? "M.",
@@ -64,6 +66,11 @@ export function EditTenantDialog({
   const [isSaving, setIsSaving] = useState(false)
   const [loadedTenantId, setLoadedTenantId] = useState<string | null>(null)
 
+  const [email, setEmail] = useState(tenant?.email ?? "")
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+  const [isInviting, setIsInviting] = useState(false)
+
   if (tenant && tenant.id !== loadedTenantId) {
     setLoadedTenantId(tenant.id)
     setCivility(tenant.civility)
@@ -73,6 +80,40 @@ export function EditTenantDialog({
     setFirstQuittanceDate(tenant.firstQuittanceDate ?? "")
     setLastQuittanceDate(tenant.lastQuittanceDate ?? "")
     setError(null)
+    setEmail(tenant.email ?? "")
+    setInviteCode(null)
+    setInviteError(null)
+  }
+
+  async function handleInvite() {
+    if (!tenant || !email.trim()) return
+
+    setIsInviting(true)
+    setInviteError(null)
+
+    try {
+      const response = await fetch(`/api/tenants/${tenant.id}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Erreur lors de l'envoi de l'invitation.")
+      }
+
+      setInviteCode(data.verificationCode as string)
+      onInvited?.()
+    } catch (cause) {
+      setInviteError(
+        cause instanceof Error
+          ? cause.message
+          : "Erreur lors de l'envoi de l'invitation.",
+      )
+    } finally {
+      setIsInviting(false)
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -222,6 +263,60 @@ export function EditTenantDialog({
               </Button>
             </DialogFooter>
           </form>
+        ) : null}
+
+        {tenant ? (
+          <div className="grid gap-3 border-t border-border pt-4">
+            <div>
+              <p className="text-sm font-medium">Accès locataire</p>
+              <p className="text-sm text-muted-foreground">
+                {tenant.hasAccount
+                  ? "Compte activé : le locataire peut consulter ses quittances."
+                  : tenant.verificationCode
+                    ? "Invitation envoyée, en attente d'activation."
+                    : "Pas encore invité."}
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-tenant-email">Email du locataire</Label>
+              <Input
+                id="edit-tenant-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="locataire@exemple.fr"
+              />
+            </div>
+
+            {inviteCode ? (
+              <p className="rounded-2xl bg-muted/50 p-3 text-sm">
+                Code à transmettre au locataire :{" "}
+                <span className="font-mono font-medium">{inviteCode}</span>
+                <br />
+                <span className="text-muted-foreground">
+                  Ce code ne s&apos;affichera qu&apos;une fois ici.
+                </span>
+              </p>
+            ) : null}
+
+            {inviteError ? (
+              <p className="text-sm text-destructive">{inviteError}</p>
+            ) : null}
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!email.trim() || isInviting}
+              onClick={handleInvite}
+            >
+              {isInviting
+                ? "Génération..."
+                : tenant.hasAccount || tenant.verificationCode
+                  ? "Générer un nouveau code d'activation"
+                  : "Générer un code d'activation"}
+            </Button>
+          </div>
         ) : null}
       </DialogContent>
     </Dialog>

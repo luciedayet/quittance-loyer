@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
+import { assertCanManageTenant, assertCanViewTenant } from "@/lib/auth/ownership"
 import { requireSession } from "@/lib/auth/session"
 import { listQuittancesForTenant, logQuittance } from "@/lib/notion/quittances"
 import { syncTenantQuittanceDates } from "@/lib/notion/tenants"
@@ -15,6 +16,9 @@ export async function GET(request: NextRequest) {
       { status: 400 },
     )
   }
+
+  const ownershipError = await assertCanViewTenant(session, tenantId)
+  if (ownershipError) return ownershipError
 
   try {
     const quittances = await listQuittancesForTenant(tenantId)
@@ -48,6 +52,9 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     )
   }
+
+  const ownershipError = await assertCanManageTenant(session, tenantId)
+  if (ownershipError) return ownershipError
 
   try {
     await logQuittance({

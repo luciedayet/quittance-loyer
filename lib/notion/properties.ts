@@ -31,6 +31,13 @@ export function getDate(
   return date?.start ?? undefined
 }
 
+export function getEmail(
+  property: NotionPropertyValue | undefined,
+): string | null {
+  const value = property?.email
+  return typeof value === "string" && value ? value : null
+}
+
 export function getRelationIds(
   property: NotionPropertyValue | undefined,
 ): string[] {
@@ -44,6 +51,10 @@ export function titleProperty(value: string): NotionPropertyValue {
 
 export function richTextProperty(value: string): NotionPropertyValue {
   return { rich_text: value ? [{ text: { content: value } }] : [] }
+}
+
+export function emailProperty(value: string | null): NotionPropertyValue {
+  return { email: value || null }
 }
 
 export function numberProperty(value: number): NotionPropertyValue {

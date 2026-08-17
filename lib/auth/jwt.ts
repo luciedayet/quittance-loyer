@@ -10,24 +10,36 @@ function getSecretKey(): Uint8Array {
   return new TextEncoder().encode(secret)
 }
 
-export type SessionPayload = {
-  userId: string
-  email: string
-}
+export type SessionPayload =
+  | { role: "admin"; userId: string; email: string }
+  | { role: "bailleur"; userId: string; email: string; profileId: string }
+  | { role: "locataire"; tenantId: string; email: string; profileId: string }
 
 function isSessionPayload(value: unknown): value is SessionPayload {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as Record<string, unknown>).userId === "string" &&
-    typeof (value as Record<string, unknown>).email === "string"
-  )
+  if (typeof value !== "object" || value === null) return false
+  const record = value as Record<string, unknown>
+  if (typeof record.email !== "string") return false
+
+  if (record.role === "admin") {
+    return typeof record.userId === "string"
+  }
+  if (record.role === "bailleur") {
+    return (
+      typeof record.userId === "string" && typeof record.profileId === "string"
+    )
+  }
+  if (record.role === "locataire") {
+    return (
+      typeof record.tenantId === "string" && typeof record.profileId === "string"
+    )
+  }
+  return false
 }
 
 export async function signSessionToken(
   payload: SessionPayload,
 ): Promise<string> {
-  return new SignJWT(payload)
+  return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(SESSION_DURATION)

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-import { requireSession } from "@/lib/auth/session"
+import { forbiddenResponse, requireSession } from "@/lib/auth/session"
 import { createTenant, listTenants } from "@/lib/notion/tenants"
 import { isValidIsoDate } from "@/lib/quittance"
 import type { TenantCivility } from "@/lib/tenants"
@@ -24,6 +24,11 @@ export async function GET(request: NextRequest) {
       { error: "Le paramètre profileId est requis." },
       { status: 400 },
     )
+  }
+
+  if (session.role === "locataire") return forbiddenResponse()
+  if (session.role === "bailleur" && session.profileId !== profileId) {
+    return forbiddenResponse()
   }
 
   try {
@@ -51,6 +56,15 @@ export async function POST(request: NextRequest) {
     firstQuittanceDate,
     lastQuittanceDate,
   } = body ?? {}
+
+  if (session.role === "locataire") return forbiddenResponse()
+  if (
+    session.role === "bailleur" &&
+    typeof profileId === "string" &&
+    session.profileId !== profileId
+  ) {
+    return forbiddenResponse()
+  }
 
   if (
     typeof profileId !== "string" ||
