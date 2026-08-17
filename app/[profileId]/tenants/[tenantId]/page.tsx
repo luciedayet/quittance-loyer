@@ -38,6 +38,7 @@ export default async function TenantQuittancesPage({
       tenant={tenant}
       initialQuittances={quittances}
       readOnly={session.role === "locataire"}
+      canPreviewAsLocataire={session.role === "admin"}
     />
   )
 }
