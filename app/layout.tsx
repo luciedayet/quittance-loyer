@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
+import { Navbar } from "@/components/layout/navbar"
 import { UpdateBanner } from "@/components/pwa/update-banner"
 import { ThemeProvider } from "@/components/theme-provider"
+import { getSession } from "@/lib/auth/session"
 import { cn } from "@/lib/utils"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
@@ -28,11 +30,13 @@ export const viewport: Viewport = {
   themeColor: "#28251f",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const session = await getSession()
+
   return (
     <html
       lang="fr"
@@ -45,7 +49,10 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {session ? <Navbar /> : null}
+          {children}
+        </ThemeProvider>
         <UpdateBanner />
       </body>
     </html>
