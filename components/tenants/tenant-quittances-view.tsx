@@ -1,8 +1,11 @@
 "use client"
 
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Delete02Icon, Edit02Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { useCallback, useState } from "react"
 
+import { EditQuittanceDialog } from "@/components/tenants/edit-quittance-dialog"
 import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -51,6 +54,9 @@ export function TenantQuittancesView({
   const [quittances, setQuittances] = useState(initialQuittances)
   const [quittanceDialogOpen, setQuittanceDialogOpen] = useState(false)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [editingQuittance, setEditingQuittance] =
+    useState<QuittanceRecord | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const { download } = useQuittancePdf()
 
   async function handleDownload(quittance: QuittanceRecord) {
@@ -79,6 +85,45 @@ export function TenantQuittancesView({
     const data = await response.json()
     setQuittances(data.quittances as QuittanceRecord[])
   }, [tenant.id])
+
+  async function handleEditSubmit(update: {
+    periodMonth: string
+    paymentDate: string
+    totalAmount: number
+  }) {
+    if (!editingQuittance) return
+    const response = await fetch(`/api/quittances/${editingQuittance.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    })
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw new Error(data?.error ?? "Erreur lors de la mise à jour.")
+    }
+    await refreshQuittances()
+  }
+
+  async function handleDeleteQuittance(quittance: QuittanceRecord) {
+    if (
+      !window.confirm(
+        `Supprimer la quittance de ${periodLabel(quittance.periodMonth)} ?`,
+      )
+    ) {
+      return
+    }
+
+    setDeletingId(quittance.id)
+    try {
+      const response = await fetch(`/api/quittances/${quittance.id}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) return
+      await refreshQuittances()
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
@@ -159,6 +204,37 @@ export function TenantQuittancesView({
                         ? "Génération…"
                         : "Télécharger"}
                     </Button>
+                    {readOnly ? null : (
+                      <>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="bg-secondary"
+                          onClick={() => setEditingQuittance(quittance)}
+                        >
+                          <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                          <span className="sr-only">
+                            Modifier la quittance de{" "}
+                            {periodLabel(quittance.periodMonth)}
+                          </span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="bg-secondary text-destructive"
+                          disabled={deletingId === quittance.id}
+                          onClick={() => handleDeleteQuittance(quittance)}
+                        >
+                          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                          <span className="sr-only">
+                            Supprimer la quittance de{" "}
+                            {periodLabel(quittance.periodMonth)}
+                          </span>
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </li>
               ))}
@@ -174,6 +250,18 @@ export function TenantQuittancesView({
           profile={profile}
           tenant={tenant}
           onLogged={refreshQuittances}
+        />
+      )}
+
+      {readOnly || !editingQuittance ? null : (
+        <EditQuittanceDialog
+          key={editingQuittance.id}
+          open={Boolean(editingQuittance)}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setEditingQuittance(null)
+          }}
+          quittance={editingQuittance}
+          onSubmit={handleEditSubmit}
         />
       )}
     </div>

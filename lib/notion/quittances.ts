@@ -1,4 +1,10 @@
-import { createPage, queryAllPages } from "./client"
+import {
+  archivePage,
+  createPage,
+  getPage,
+  queryAllPages,
+  updatePage,
+} from "./client"
 import { getProfilePageId } from "./profiles"
 import {
   dateProperty,
@@ -81,6 +87,50 @@ export async function listQuittancesForTenant(
   })
 
   return pages.map(mapPageToQuittance)
+}
+
+export async function getQuittanceById(
+  quittanceId: string,
+): Promise<QuittanceRecord | undefined> {
+  if (!process.env.NOTION_QUITTANCES_DATA_SOURCE_ID) return undefined
+
+  try {
+    const page = await getPage(quittanceId)
+    if (page.archived) return undefined
+    return mapPageToQuittance(page)
+  } catch {
+    return undefined
+  }
+}
+
+export type QuittanceUpdateInput = Partial<{
+  periodMonth: string
+  paymentDate: string
+  totalAmount: number
+}>
+
+export async function updateQuittance(
+  quittanceId: string,
+  updates: QuittanceUpdateInput,
+): Promise<QuittanceRecord> {
+  const properties: Record<string, unknown> = {}
+
+  if (updates.periodMonth !== undefined) {
+    properties["Periode"] = richTextProperty(updates.periodMonth)
+  }
+  if (updates.paymentDate !== undefined) {
+    properties["Date de paiement"] = dateProperty(updates.paymentDate)
+  }
+  if (updates.totalAmount !== undefined) {
+    properties["Montant total"] = numberProperty(updates.totalAmount)
+  }
+
+  const page = await updatePage(quittanceId, { properties })
+  return mapPageToQuittance(page)
+}
+
+export async function deleteQuittance(quittanceId: string): Promise<void> {
+  await archivePage(quittanceId)
 }
 
 export async function listQuittancesForProfile(

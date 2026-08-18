@@ -266,3 +266,17 @@ export async function syncTenantQuittanceDates(
     },
   })
 }
+
+/** Recalcule première/dernière quittance après édition ou suppression. */
+export async function setTenantQuittanceDates(
+  tenantId: string,
+  firstQuittanceDate: string | null,
+  lastQuittanceDate: string | null,
+): Promise<void> {
+  await updatePage(tenantId, {
+    properties: {
+      "Première quittance": dateProperty(firstQuittanceDate),
+      "Dernière quittance": dateProperty(lastQuittanceDate),
+    },
+  })
+}
