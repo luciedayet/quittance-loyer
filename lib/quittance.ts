@@ -1,7 +1,11 @@
 import { toCurrency } from "n2words/fr-FR"
 
 import type { Profile } from "@/lib/profiles"
-import type { Tenant, TenantCivility } from "@/lib/tenants"
+import {
+  effectiveRateAt,
+  type Tenant,
+  type TenantCivility,
+} from "@/lib/tenants"
 
 export type QuittanceFields = {
   profile: Profile
@@ -162,7 +166,8 @@ export function buildQuittanceFields(
   const period = periodFromMonth(periodMonth)
   if (!period) return null
 
-  const totalAmount = tenant.rentAmount + tenant.chargesAmount
+  const { rentAmount, chargesAmount } = effectiveRateAt(tenant, periodMonth)
+  const totalAmount = rentAmount + chargesAmount
 
   const [yearPart, monthPart, dayPart] = paymentDate.split("-")
   const paymentDateObject = new Date(
@@ -179,8 +184,8 @@ export function buildQuittanceFields(
     periodEnd: period.end,
     paymentDateFormatted: formatDateFr(paymentDateObject),
     issueDateFormatted: formatDateFr(new Date()),
-    rentFormatted: formatEuros(tenant.rentAmount),
-    chargesFormatted: formatEuros(tenant.chargesAmount),
+    rentFormatted: formatEuros(rentAmount),
+    chargesFormatted: formatEuros(chargesAmount),
     totalFormatted: formatEuros(totalAmount),
     totalAmount,
     amountInWords: amountInWords(totalAmount),

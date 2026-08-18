@@ -19,9 +19,14 @@ import {
 } from "@/components/ui/card"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
 import { useTenants } from "@/hooks/use-tenants"
-import { formatEuros, formatIsoDate } from "@/lib/quittance"
+import {
+  formatEuros,
+  formatIsoDate,
+  monthFromDate,
+  todayIsoDate,
+} from "@/lib/quittance"
 import type { Profile } from "@/lib/profiles"
-import type { Tenant } from "@/lib/tenants"
+import { effectiveRateAt, type Tenant } from "@/lib/tenants"
 import { cn } from "@/lib/utils"
 
 type TenantsBoardProps = {
@@ -52,6 +57,7 @@ export function TenantsBoard({
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editTenantDialogOpen, setEditTenantDialogOpen] = useState(false)
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null)
+  const currentMonth = monthFromDate(todayIsoDate())
 
   function openEditTenantDialog(tenant: Tenant) {
     setEditingTenant(tenant)
@@ -101,63 +107,69 @@ export function TenantsBoard({
               : null}
 
             {isLoaded
-              ? tenants.map((tenant) => (
-                  <Link
-                    key={tenant.id}
-                    href={`/${profile.id}/tenants/${tenant.id}`}
-                    className="group relative block"
-                  >
-                    <Card className="relative h-full text-left transition-colors group-hover:bg-muted/40">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="absolute top-4 right-4 bg-secondary"
-                        onClick={(event) => {
-                          event.preventDefault()
-                          event.stopPropagation()
-                          openEditTenantDialog(tenant)
-                        }}
-                      >
-                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                        <span className="sr-only">Modifier {tenant.name}</span>
-                      </Button>
-                      <CardHeader>
-                        <TenantAvatar
-                          seed={tenant.avatarSeed}
-                          name={tenant.name}
-                          size="lg"
-                        />
-                        <CardTitle>
-                          {tenant.civility} {tenant.name}
-                        </CardTitle>
-                        <CardDescription>
-                          Loyer {formatEuros(tenant.rentAmount)} € · Charges{" "}
-                          {formatEuros(tenant.chargesAmount)} €
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <p className="text-sm font-medium text-primary">
-                          Gérer les quittances →
-                        </p>
-                        <div className="text-xs text-muted-foreground">
-                          <p>
-                            Première quittance :{" "}
-                            {tenant.firstQuittanceDate
-                              ? formatIsoDate(tenant.firstQuittanceDate)
-                              : "—"}
+              ? tenants.map((tenant) => {
+                  const rate = effectiveRateAt(tenant, currentMonth)
+
+                  return (
+                    <Link
+                      key={tenant.id}
+                      href={`/${profile.id}/tenants/${tenant.id}`}
+                      className="group relative block"
+                    >
+                      <Card className="relative h-full text-left transition-colors group-hover:bg-muted/40">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="absolute top-4 right-4 bg-secondary"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            openEditTenantDialog(tenant)
+                          }}
+                        >
+                          <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                          <span className="sr-only">
+                            Modifier {tenant.name}
+                          </span>
+                        </Button>
+                        <CardHeader>
+                          <TenantAvatar
+                            seed={tenant.avatarSeed}
+                            name={tenant.name}
+                            size="lg"
+                          />
+                          <CardTitle>
+                            {tenant.civility} {tenant.name}
+                          </CardTitle>
+                          <CardDescription>
+                            Loyer {formatEuros(rate.rentAmount)} € · Charges{" "}
+                            {formatEuros(rate.chargesAmount)} €
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <p className="text-sm font-medium text-primary">
+                            Gérer les quittances →
                           </p>
-                          <p>
-                            Dernière quittance :{" "}
-                            {tenant.lastQuittanceDate
-                              ? formatIsoDate(tenant.lastQuittanceDate)
-                              : "—"}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))
+                          <div className="text-xs text-muted-foreground">
+                            <p>
+                              Première quittance :{" "}
+                              {tenant.firstQuittanceDate
+                                ? formatIsoDate(tenant.firstQuittanceDate)
+                                : "—"}
+                            </p>
+                            <p>
+                              Dernière quittance :{" "}
+                              {tenant.lastQuittanceDate
+                                ? formatIsoDate(tenant.lastQuittanceDate)
+                                : "—"}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  )
+                })
               : null}
 
             {isLoaded ? (
@@ -199,7 +211,7 @@ export function TenantsBoard({
         onOpenChange={setEditTenantDialogOpen}
         tenant={editingTenant}
         onSubmit={handleTenantUpdate}
-        onInvited={refresh}
+        onTenantChanged={refresh}
       />
     </div>
   )

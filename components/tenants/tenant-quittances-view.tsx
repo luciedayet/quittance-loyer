@@ -23,8 +23,10 @@ import {
   buildQuittanceFields,
   formatEuros,
   formatIsoDate,
+  monthFromDate,
+  todayIsoDate,
 } from "@/lib/quittance"
-import type { Tenant } from "@/lib/tenants"
+import { effectiveRateAt, type Tenant } from "@/lib/tenants"
 import { cn } from "@/lib/utils"
 
 type TenantQuittancesViewProps = {
@@ -58,6 +60,7 @@ export function TenantQuittancesView({
     useState<QuittanceRecord | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const { download } = useQuittancePdf()
+  const currentRate = effectiveRateAt(tenant, monthFromDate(todayIsoDate()))
 
   async function handleDownload(quittance: QuittanceRecord) {
     if (!quittance.paymentDate) return
@@ -145,8 +148,9 @@ export function TenantQuittancesView({
                 {tenant.civility} {tenant.name}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {profile.sciName} · Loyer {formatEuros(tenant.rentAmount)} € +
-                charges {formatEuros(tenant.chargesAmount)} €
+                {profile.sciName} · Loyer{" "}
+                {formatEuros(currentRate.rentAmount)} € + charges{" "}
+                {formatEuros(currentRate.chargesAmount)} €
               </p>
             </div>
           </div>

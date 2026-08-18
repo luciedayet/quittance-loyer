@@ -17,7 +17,6 @@ import { useQuittancePdf } from "@/components/pdf/use-quittance-pdf"
 import {
   buildQuittanceFields,
   buildQuittanceFilename,
-  formatEuros,
   isValidIsoDate,
   isValidPeriodMonth,
   monthFromDate,
@@ -145,8 +144,8 @@ export function QuittanceDialog({
                 </p>
                 <p>
                   <span className="font-medium">Détail :</span> loyer{" "}
-                  {formatEuros(tenant.rentAmount)} € + charges{" "}
-                  {formatEuros(tenant.chargesAmount)} €
+                  {fields.rentFormatted} € + charges{" "}
+                  {fields.chargesFormatted} €
                 </p>
               </div>
             ) : (

@@ -23,7 +23,7 @@ import {
   titleProperty,
 } from "./properties"
 import type { NotionPage } from "./types"
-import type { Tenant, TenantCivility } from "@/lib/tenants"
+import type { RentChange, Tenant, TenantCivility } from "@/lib/tenants"
 import { generateActivationCode } from "@/lib/auth/activation-code"
 
 function requireDataSourceId(): string {
@@ -38,6 +38,27 @@ function requireDataSourceId(): string {
 
 function avatarSeedFromName(name: string): string {
   return name.trim().toLowerCase()
+}
+
+function isRentChange(value: unknown): value is RentChange {
+  if (typeof value !== "object" || value === null) return false
+  const record = value as Record<string, unknown>
+  return (
+    typeof record.id === "string" &&
+    typeof record.effectiveMonth === "string" &&
+    typeof record.rentAmount === "number" &&
+    typeof record.chargesAmount === "number"
+  )
+}
+
+function parseRentHistory(value: string): RentChange[] {
+  if (!value) return []
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed.filter(isRentChange) : []
+  } catch {
+    return []
+  }
 }
 
 function mapPageToTenant(page: NotionPage): Tenant {
@@ -58,6 +79,7 @@ function mapPageToTenant(page: NotionPage): Tenant {
     email: getEmail(properties["Email"]),
     verificationCode: getRichText(properties["Code de vérification"]) || null,
     hasAccount: Boolean(getRichText(properties["Mot de passe"])),
+    rentHistory: parseRentHistory(getRichText(properties["Historique loyer"])),
   }
 }
 
@@ -70,7 +92,9 @@ export type NewTenantInput = {
   lastQuittanceDate?: string | null
 }
 
-export type TenantUpdateInput = Partial<NewTenantInput>
+export type TenantUpdateInput = Partial<NewTenantInput> & {
+  rentHistory?: RentChange[]
+}
 
 export async function listTenants(profileId: string): Promise<Tenant[]> {
   const dataSourceId = requireDataSourceId()
@@ -150,6 +174,11 @@ export async function updateTenant(
   }
   if (updates.lastQuittanceDate !== undefined) {
     properties["Dernière quittance"] = dateProperty(updates.lastQuittanceDate)
+  }
+  if (updates.rentHistory !== undefined) {
+    properties["Historique loyer"] = richTextProperty(
+      JSON.stringify(updates.rentHistory),
+    )
   }
 
   const page = await updatePage(tenantId, { properties })

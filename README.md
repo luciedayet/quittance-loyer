@@ -60,3 +60,7 @@ Il n'y a pas d'inscription publique : chaque compte est provisionné manuellemen
 La base **"Locataires"** a 3 propriétés supplémentaires : `Email` (email), `Code de vérification` (rich text), `Mot de passe` (rich text, hash). Depuis la fiche d'un locataire (`Modifier` dans le tableau de bord de la SCI), le bailleur/admin renseigne l'email du locataire et clique sur **"Générer un code d'activation"** : le code s'affiche une seule fois et doit être transmis manuellement (SMS, email...) au locataire, qui l'utilise sur `/activation`.
 
 Toutes les pages et routes API (sauf `/login`, `/activation` et `/api/auth/*`) exigent une session valide et vérifient le rôle/la propriété des données ; les visiteurs non connectés sont redirigés vers `/login`.
+
+## Augmentations de loyer
+
+La base **"Locataires"** a une propriété supplémentaire à créer dans Notion : `Historique loyer` (rich text). Elle stocke en JSON la liste des augmentations de loyer/charges du locataire (mois d'effet, nouveau loyer, nouvelles charges), gérée depuis **"Modifier"** dans le tableau de bord de la SCI, et prise en compte automatiquement lors de la génération d'une quittance pour la période concernée. Sans cette propriété, la lecture reste possible (aucune augmentation n'est appliquée) mais l'ajout d'une augmentation échoue avec une erreur — crée la propriété dans Notion avant d'utiliser cette fonctionnalité.

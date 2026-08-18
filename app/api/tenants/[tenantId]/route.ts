@@ -3,11 +3,28 @@ import { NextResponse, type NextRequest } from "next/server"
 import { assertCanManageTenant } from "@/lib/auth/ownership"
 import { requireSession } from "@/lib/auth/session"
 import { removeTenant, updateTenant } from "@/lib/notion/tenants"
-import { isValidIsoDate } from "@/lib/quittance"
-import type { TenantCivility } from "@/lib/tenants"
+import { isValidIsoDate, isValidPeriodMonth } from "@/lib/quittance"
+import type { RentChange, TenantCivility } from "@/lib/tenants"
 
 function isValidCivility(value: unknown): value is TenantCivility {
   return value === "M." || value === "Mme"
+}
+
+function isValidRentChange(value: unknown): value is RentChange {
+  if (typeof value !== "object" || value === null) return false
+  const record = value as Record<string, unknown>
+  return (
+    typeof record.id === "string" &&
+    Boolean(record.id) &&
+    typeof record.effectiveMonth === "string" &&
+    isValidPeriodMonth(record.effectiveMonth) &&
+    typeof record.rentAmount === "number" &&
+    Number.isFinite(record.rentAmount) &&
+    record.rentAmount > 0 &&
+    typeof record.chargesAmount === "number" &&
+    Number.isFinite(record.chargesAmount) &&
+    record.chargesAmount >= 0
+  )
 }
 
 type RouteParams = {
@@ -31,6 +48,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     chargesAmount,
     firstQuittanceDate,
     lastQuittanceDate,
+    rentHistory,
   } = body ?? {}
 
   const updates: Parameters<typeof updateTenant>[1] = {}
@@ -88,6 +106,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       )
     }
     updates.lastQuittanceDate = lastQuittanceDate
+  }
+
+  if (rentHistory !== undefined) {
+    if (!Array.isArray(rentHistory) || !rentHistory.every(isValidRentChange)) {
+      return NextResponse.json(
+        { error: "Historique de loyer invalide." },
+        { status: 400 },
+      )
+    }
+    updates.rentHistory = rentHistory
   }
 
   try {

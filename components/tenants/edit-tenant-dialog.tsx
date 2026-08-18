@@ -1,5 +1,7 @@
 "use client"
 
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Delete02Icon } from "@hugeicons/core-free-icons"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -20,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { Tenant, TenantCivility } from "@/lib/tenants"
+import { formatEuros, periodFromMonth } from "@/lib/quittance"
+import type { RentChange, Tenant, TenantCivility } from "@/lib/tenants"
 
 type TenantUpdate = {
   civility: TenantCivility
@@ -36,7 +39,8 @@ type EditTenantDialogProps = {
   onOpenChange: (open: boolean) => void
   tenant: Tenant | null
   onSubmit: (update: TenantUpdate) => Promise<void>
-  onInvited?: () => void
+  /** Rafraîchit la liste après une invitation ou une augmentation. */
+  onTenantChanged?: () => void
 }
 
 export function EditTenantDialog({
@@ -44,7 +48,7 @@ export function EditTenantDialog({
   onOpenChange,
   tenant,
   onSubmit,
-  onInvited,
+  onTenantChanged,
 }: EditTenantDialogProps) {
   const [civility, setCivility] = useState<TenantCivility>(
     tenant?.civility ?? "M.",
@@ -71,6 +75,15 @@ export function EditTenantDialog({
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [isInviting, setIsInviting] = useState(false)
 
+  const [rentHistory, setRentHistory] = useState<RentChange[]>(
+    tenant?.rentHistory ?? [],
+  )
+  const [newEffectiveMonth, setNewEffectiveMonth] = useState("")
+  const [newRentAmount, setNewRentAmount] = useState("")
+  const [newChargesAmount, setNewChargesAmount] = useState("")
+  const [historyError, setHistoryError] = useState<string | null>(null)
+  const [isSavingHistory, setIsSavingHistory] = useState(false)
+
   if (tenant && tenant.id !== loadedTenantId) {
     setLoadedTenantId(tenant.id)
     setCivility(tenant.civility)
@@ -83,6 +96,11 @@ export function EditTenantDialog({
     setEmail(tenant.email ?? "")
     setInviteCode(null)
     setInviteError(null)
+    setRentHistory(tenant.rentHistory)
+    setNewEffectiveMonth("")
+    setNewRentAmount("")
+    setNewChargesAmount("")
+    setHistoryError(null)
   }
 
   async function handleInvite() {
@@ -104,7 +122,7 @@ export function EditTenantDialog({
       }
 
       setInviteCode(data.verificationCode as string)
-      onInvited?.()
+      onTenantChanged?.()
     } catch (cause) {
       setInviteError(
         cause instanceof Error
@@ -114,6 +132,73 @@ export function EditTenantDialog({
     } finally {
       setIsInviting(false)
     }
+  }
+
+  async function persistRentHistory(nextHistory: RentChange[]) {
+    if (!tenant) return
+
+    setIsSavingHistory(true)
+    setHistoryError(null)
+
+    try {
+      const response = await fetch(`/api/tenants/${tenant.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rentHistory: nextHistory }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(
+          data?.error ?? "Erreur lors de la mise à jour du loyer.",
+        )
+      }
+      setRentHistory(nextHistory)
+      onTenantChanged?.()
+    } catch (cause) {
+      setHistoryError(
+        cause instanceof Error
+          ? cause.message
+          : "Erreur lors de la mise à jour du loyer.",
+      )
+    } finally {
+      setIsSavingHistory(false)
+    }
+  }
+
+  async function handleAddRentChange() {
+    const rent = Number.parseFloat(newRentAmount.replace(",", "."))
+    const charges = Number.parseFloat(newChargesAmount.replace(",", "."))
+
+    if (!newEffectiveMonth) {
+      setHistoryError("Le mois d'effet est requis.")
+      return
+    }
+    if (!Number.isFinite(rent) || rent <= 0) {
+      setHistoryError("Le nouveau loyer doit être un montant positif.")
+      return
+    }
+    if (!Number.isFinite(charges) || charges < 0) {
+      setHistoryError(
+        "Les nouvelles charges doivent être un montant positif ou nul.",
+      )
+      return
+    }
+
+    const entry: RentChange = {
+      id: crypto.randomUUID(),
+      effectiveMonth: newEffectiveMonth,
+      rentAmount: rent,
+      chargesAmount: charges,
+    }
+
+    await persistRentHistory([...rentHistory, entry])
+    setNewEffectiveMonth("")
+    setNewRentAmount("")
+    setNewChargesAmount("")
+  }
+
+  async function handleRemoveRentChange(id: string) {
+    await persistRentHistory(rentHistory.filter((entry) => entry.id !== id))
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -263,6 +348,103 @@ export function EditTenantDialog({
               </Button>
             </DialogFooter>
           </form>
+        ) : null}
+
+        {tenant ? (
+          <div className="grid gap-3 border-t border-border pt-4">
+            <div>
+              <p className="text-sm font-medium">Augmentations de loyer</p>
+              <p className="text-sm text-muted-foreground">
+                Le loyer et les charges ci-dessus s&apos;appliquent tant
+                qu&apos;aucune augmentation n&apos;est enregistrée pour une
+                période donnée.
+              </p>
+            </div>
+
+            {rentHistory.length > 0 ? (
+              <ul className="grid gap-2">
+                {[...rentHistory]
+                  .sort((a, b) =>
+                    a.effectiveMonth < b.effectiveMonth ? 1 : -1,
+                  )
+                  .map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="flex items-center justify-between rounded-2xl bg-muted/50 px-3 py-2 text-sm"
+                    >
+                      <span className="capitalize">
+                        À partir de{" "}
+                        {periodFromMonth(entry.effectiveMonth)?.label ??
+                          entry.effectiveMonth}{" "}
+                        : {formatEuros(entry.rentAmount)} € + charges{" "}
+                        {formatEuros(entry.chargesAmount)} €
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={isSavingHistory}
+                        onClick={() => handleRemoveRentChange(entry.id)}
+                      >
+                        <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                        <span className="sr-only">
+                          Supprimer cette augmentation
+                        </span>
+                      </Button>
+                    </li>
+                  ))}
+              </ul>
+            ) : null}
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-2">
+                <Label htmlFor="rent-change-month">Mois d&apos;effet</Label>
+                <Input
+                  id="rent-change-month"
+                  type="month"
+                  value={newEffectiveMonth}
+                  onChange={(event) => setNewEffectiveMonth(event.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="rent-change-rent">Nouveau loyer (€)</Label>
+                <Input
+                  id="rent-change-rent"
+                  inputMode="decimal"
+                  value={newRentAmount}
+                  onChange={(event) => setNewRentAmount(event.target.value)}
+                  placeholder="680,00"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="rent-change-charges">
+                  Nouvelles charges (€)
+                </Label>
+                <Input
+                  id="rent-change-charges"
+                  inputMode="decimal"
+                  value={newChargesAmount}
+                  onChange={(event) => setNewChargesAmount(event.target.value)}
+                  placeholder="55,00"
+                />
+              </div>
+            </div>
+
+            {historyError ? (
+              <p className="text-sm text-destructive">{historyError}</p>
+            ) : null}
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSavingHistory}
+              onClick={handleAddRentChange}
+            >
+              {isSavingHistory
+                ? "Enregistrement..."
+                : "Ajouter une augmentation"}
+            </Button>
+          </div>
         ) : null}
 
         {tenant ? (
