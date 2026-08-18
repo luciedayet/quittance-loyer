@@ -6,7 +6,10 @@ import { ImpersonationBanner } from "@/components/layout/impersonation-banner"
 import { Navbar } from "@/components/layout/navbar"
 import { UpdateBanner } from "@/components/pwa/update-banner"
 import { ThemeProvider } from "@/components/theme-provider"
-import { getImpersonation } from "@/lib/auth/impersonation"
+import {
+  getImpersonation,
+  type ImpersonationPayload,
+} from "@/lib/auth/impersonation"
 import { getSession } from "@/lib/auth/session"
 import { getProfileById } from "@/lib/profiles"
 import { getTenantById } from "@/lib/notion/tenants"
@@ -35,11 +38,8 @@ export const viewport: Viewport = {
 }
 
 async function getImpersonationLabel(
-  isAdmin: boolean,
-): Promise<string | null> {
-  const impersonation = await getImpersonation(isAdmin)
-  if (!impersonation) return null
-
+  impersonation: ImpersonationPayload,
+): Promise<string> {
   const profile = await getProfileById(impersonation.profileId)
   const sciName = profile?.sciName ?? "SCI inconnue"
 
@@ -60,9 +60,10 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const session = await getSession()
-  const impersonationLabel = await getImpersonationLabel(
-    session?.role === "admin",
-  )
+  const impersonation = await getImpersonation(session?.role === "admin")
+  const impersonationLabel = impersonation
+    ? await getImpersonationLabel(impersonation)
+    : null
 
   return (
     <html
@@ -80,7 +81,11 @@ export default async function RootLayout({
           {session ? (
             <Navbar
               role={session.role}
-              impersonating={Boolean(impersonationLabel)}
+              bailleurProfileId={
+                session.role === "bailleur" ? session.profileId : undefined
+              }
+              impersonating={Boolean(impersonation)}
+              impersonatingLocataire={impersonation?.role === "locataire"}
             />
           ) : null}
           {impersonationLabel ? (

@@ -1,0 +1,231 @@
+"use client"
+
+import Link from "next/link"
+import { useState } from "react"
+
+import { LogoutButton } from "@/components/auth/logout-button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import type { Profile } from "@/lib/profiles"
+import { cn } from "@/lib/utils"
+
+type ProfileSettingsViewProps = {
+  profile: Profile
+}
+
+function linesToText(lines: string[]): string {
+  return lines.join("\n")
+}
+
+function textToLines(value: string): string[] {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+export function ProfileSettingsView({
+  profile: initialProfile,
+}: ProfileSettingsViewProps) {
+  const [profile, setProfile] = useState(initialProfile)
+  const [sciName, setSciName] = useState(profile.sciName)
+  const [managerName, setManagerName] = useState(profile.managerName)
+  const [city, setCity] = useState(profile.city)
+  const [sciAddress, setSciAddress] = useState(linesToText(profile.sciAddress))
+  const [propertyShortAddress, setPropertyShortAddress] = useState(
+    profile.property.shortAddress ?? "",
+  )
+  const [propertyLines, setPropertyLines] = useState(
+    linesToText(profile.property.lines),
+  )
+  const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const addressLines = textToLines(sciAddress)
+    const propertyAddressLines = textToLines(propertyLines)
+
+    if (!sciName.trim()) {
+      setError("Le nom de la SCI est requis.")
+      return
+    }
+    if (!managerName.trim()) {
+      setError("Le nom du gérant est requis.")
+      return
+    }
+    if (!city.trim()) {
+      setError("La ville est requise.")
+      return
+    }
+    if (addressLines.length === 0) {
+      setError("L'adresse de la SCI est requise.")
+      return
+    }
+    if (propertyAddressLines.length === 0) {
+      setError("L'adresse du bien loué est requise.")
+      return
+    }
+
+    setIsSaving(true)
+    setError(null)
+    setSaved(false)
+
+    try {
+      const response = await fetch(`/api/profiles/${profile.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sciName: sciName.trim(),
+          managerName: managerName.trim(),
+          city: city.trim(),
+          sciAddress: addressLines,
+          propertyShortAddress: propertyShortAddress.trim(),
+          propertyLines: propertyAddressLines,
+        }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(
+          data?.error ?? "Erreur lors de la mise à jour de la SCI.",
+        )
+      }
+      setProfile(data as Profile)
+      setSaved(true)
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Erreur lors de l'enregistrement.",
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
+      <div className="space-y-2">
+        <Link
+          href={`/${profile.id}`}
+          className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+        >
+          ← Retour à {profile.sciName}
+        </Link>
+        <h1 className="font-heading text-2xl font-medium">Profil</h1>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations de la SCI</CardTitle>
+          <CardDescription>
+            Ces informations sont utilisées sur les quittances générées pour
+            cette SCI.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="profile-sci-name">Nom de la SCI</Label>
+                <Input
+                  id="profile-sci-name"
+                  value={sciName}
+                  onChange={(event) => setSciName(event.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="profile-manager-name">Gérant</Label>
+                <Input
+                  id="profile-manager-name"
+                  value={managerName}
+                  onChange={(event) => setManagerName(event.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="profile-sci-address">
+                Adresse de la SCI (une ligne par ligne d&apos;adresse)
+              </Label>
+              <Textarea
+                id="profile-sci-address"
+                value={sciAddress}
+                onChange={(event) => setSciAddress(event.target.value)}
+                rows={2}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="profile-city">Ville</Label>
+              <Input
+                id="profile-city"
+                value={city}
+                onChange={(event) => setCity(event.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="profile-property-short">
+                Libellé court du bien (optionnel)
+              </Label>
+              <Input
+                id="profile-property-short"
+                value={propertyShortAddress}
+                onChange={(event) =>
+                  setPropertyShortAddress(event.target.value)
+                }
+                placeholder="Appartement 3, Bâtiment A"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="profile-property-lines">
+                Adresse du bien loué (une ligne par ligne d&apos;adresse)
+              </Label>
+              <Textarea
+                id="profile-property-lines"
+                value={propertyLines}
+                onChange={(event) => setPropertyLines(event.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {saved ? (
+              <p className="text-sm text-primary">
+                Modifications enregistrées.
+              </p>
+            ) : null}
+
+            <div>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? "Enregistrement..." : "Enregistrer"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Compte</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LogoutButton />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

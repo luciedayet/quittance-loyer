@@ -6,7 +6,6 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { AddTenantDialog } from "@/components/tenants/add-tenant-dialog"
-import { EditProfileDialog } from "@/components/tenants/edit-profile-dialog"
 import { EditTenantDialog } from "@/components/tenants/edit-tenant-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -42,41 +41,19 @@ function TenantSkeleton() {
 }
 
 export function TenantsBoard({
-  profile: initialProfile,
+  profile,
   hideBackLink = false,
 }: TenantsBoardProps) {
-  const [profile, setProfile] = useState(initialProfile)
   const { tenants, isLoaded, addTenant, updateTenant, refresh } = useTenants(
     profile.id,
   )
   const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [editProfileDialogOpen, setEditProfileDialogOpen] = useState(false)
   const [editTenantDialogOpen, setEditTenantDialogOpen] = useState(false)
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null)
 
   function openEditTenantDialog(tenant: Tenant) {
     setEditingTenant(tenant)
     setEditTenantDialogOpen(true)
-  }
-
-  async function handleProfileUpdate(update: {
-    sciName: string
-    managerName: string
-    city: string
-    sciAddress: string[]
-    propertyShortAddress: string
-    propertyLines: string[]
-  }) {
-    const response = await fetch(`/api/profiles/${profile.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(update),
-    })
-    const data = await response.json().catch(() => null)
-    if (!response.ok) {
-      throw new Error(data?.error ?? "Erreur lors de la mise à jour de la SCI.")
-    }
-    setProfile(data as Profile)
   }
 
   async function handleTenantUpdate(update: {
@@ -102,26 +79,9 @@ export function TenantsBoard({
             ← Retour aux SCI
           </Link>
         )}
-        <div className="flex items-center gap-2">
-          <div>
-            <h1 className="font-heading text-2xl font-medium">
-              {profile.sciName}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {profile.property.lines[0]} · {profile.city}
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="bg-secondary"
-            onClick={() => setEditProfileDialogOpen(true)}
-          >
-            <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-            <span className="sr-only">Modifier la SCI</span>
-          </Button>
-        </div>
+        <h1 className="font-heading text-2xl font-medium">
+          {profile.sciName}
+        </h1>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -213,13 +173,6 @@ export function TenantsBoard({
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onSubmit={addTenant}
-      />
-
-      <EditProfileDialog
-        open={editProfileDialogOpen}
-        onOpenChange={setEditProfileDialogOpen}
-        profile={profile}
-        onSubmit={handleProfileUpdate}
       />
 
       <EditTenantDialog
