@@ -13,9 +13,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useQuittancePdf } from "@/components/pdf/use-quittance-pdf"
 import type { QuittanceRecord } from "@/lib/notion/quittances"
 import type { Profile } from "@/lib/profiles"
-import { formatEuros, formatIsoDate } from "@/lib/quittance"
+import {
+  buildQuittanceFields,
+  formatEuros,
+  formatIsoDate,
+} from "@/lib/quittance"
 import type { Tenant } from "@/lib/tenants"
 import { cn } from "@/lib/utils"
 
@@ -45,6 +50,26 @@ export function TenantQuittancesView({
 }: TenantQuittancesViewProps) {
   const [quittances, setQuittances] = useState(initialQuittances)
   const [quittanceDialogOpen, setQuittanceDialogOpen] = useState(false)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const { download } = useQuittancePdf()
+
+  async function handleDownload(quittance: QuittanceRecord) {
+    if (!quittance.paymentDate) return
+    const fields = buildQuittanceFields(
+      profile,
+      tenant,
+      quittance.paymentDate,
+      quittance.periodMonth,
+    )
+    if (!fields) return
+
+    setDownloadingId(quittance.id)
+    try {
+      await download(fields)
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   const refreshQuittances = useCallback(async () => {
     const response = await fetch(
@@ -116,9 +141,25 @@ export function TenantQuittancesView({
                         : "date inconnue"}
                     </p>
                   </div>
-                  <p className="font-medium">
-                    {formatEuros(quittance.totalAmount)} €
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <p className="font-medium">
+                      {formatEuros(quittance.totalAmount)} €
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={
+                        !quittance.paymentDate ||
+                        downloadingId === quittance.id
+                      }
+                      onClick={() => handleDownload(quittance)}
+                    >
+                      {downloadingId === quittance.id
+                        ? "Génération…"
+                        : "Télécharger"}
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
