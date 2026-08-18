@@ -1,8 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { assertCanManageTenant, assertCanViewTenant } from "@/lib/auth/ownership"
-import { requireSession } from "@/lib/auth/session"
-import { listQuittancesForTenant, logQuittance } from "@/lib/notion/quittances"
+import { forbiddenResponse, requireSession } from "@/lib/auth/session"
+import {
+  listQuittancesForProfile,
+  listQuittancesForTenant,
+  logQuittance,
+} from "@/lib/notion/quittances"
 import { syncTenantQuittanceDates } from "@/lib/notion/tenants"
 
 export async function GET(request: NextRequest) {
@@ -10,19 +14,31 @@ export async function GET(request: NextRequest) {
   if (session instanceof NextResponse) return session
 
   const tenantId = request.nextUrl.searchParams.get("tenantId")
-  if (!tenantId) {
-    return NextResponse.json(
-      { error: "Le paramètre tenantId est requis." },
-      { status: 400 },
-    )
-  }
-
-  const ownershipError = await assertCanViewTenant(session, tenantId)
-  if (ownershipError) return ownershipError
+  const profileId = request.nextUrl.searchParams.get("profileId")
 
   try {
-    const quittances = await listQuittancesForTenant(tenantId)
-    return NextResponse.json({ quittances })
+    if (tenantId) {
+      const ownershipError = await assertCanViewTenant(session, tenantId)
+      if (ownershipError) return ownershipError
+
+      const quittances = await listQuittancesForTenant(tenantId)
+      return NextResponse.json({ quittances })
+    }
+
+    if (profileId) {
+      if (session.role === "locataire") return forbiddenResponse()
+      if (session.role === "bailleur" && session.profileId !== profileId) {
+        return forbiddenResponse()
+      }
+
+      const quittances = await listQuittancesForProfile(profileId)
+      return NextResponse.json({ quittances })
+    }
+
+    return NextResponse.json(
+      { error: "Le paramètre tenantId ou profileId est requis." },
+      { status: 400 },
+    )
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },

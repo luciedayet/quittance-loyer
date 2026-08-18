@@ -86,6 +86,41 @@ export function monthFromDate(date: string): string {
   return date.slice(0, 7)
 }
 
+export function todayIsoDate(): string {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, "0")
+  const day = String(today.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+export function monthsBetweenInclusive(
+  startMonth: string,
+  endMonth: string,
+): string[] {
+  if (!isValidPeriodMonth(startMonth) || !isValidPeriodMonth(endMonth)) {
+    return []
+  }
+
+  const [startYear, startMonthNum] = startMonth.split("-").map(Number)
+  const [endYear, endMonthNum] = endMonth.split("-").map(Number)
+
+  const months: string[] = []
+  let year = startYear
+  let month = startMonthNum
+
+  while (year < endYear || (year === endYear && month <= endMonthNum)) {
+    months.push(`${year}-${String(month).padStart(2, "0")}`)
+    month += 1
+    if (month > 12) {
+      month = 1
+      year += 1
+    }
+  }
+
+  return months
+}
+
 export function periodFromMonth(periodMonth: string): {
   start: string
   end: string

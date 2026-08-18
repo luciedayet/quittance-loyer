@@ -82,3 +82,20 @@ export async function listQuittancesForTenant(
 
   return pages.map(mapPageToQuittance)
 }
+
+export async function listQuittancesForProfile(
+  profileId: string,
+): Promise<QuittanceRecord[]> {
+  const dataSourceId = process.env.NOTION_QUITTANCES_DATA_SOURCE_ID
+  if (!dataSourceId) return []
+
+  const bailleurPageId = await getProfilePageId(profileId)
+  if (!bailleurPageId) return []
+
+  const pages = await queryAllPages(dataSourceId, {
+    filter: { property: "Bailleur", relation: { contains: bailleurPageId } },
+    sorts: [{ property: "Date de paiement", direction: "descending" }],
+  })
+
+  return pages.map(mapPageToQuittance)
+}

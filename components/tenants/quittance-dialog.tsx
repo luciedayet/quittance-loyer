@@ -19,7 +19,9 @@ import {
   buildQuittanceFilename,
   formatEuros,
   isValidIsoDate,
+  isValidPeriodMonth,
   monthFromDate,
+  todayIsoDate,
 } from "@/lib/quittance"
 import type { Profile } from "@/lib/profiles"
 import type { Tenant } from "@/lib/tenants"
@@ -30,14 +32,8 @@ type QuittanceDialogProps = {
   profile: Profile
   tenant: Tenant | null
   onLogged?: () => void
-}
-
-function todayIsoDate(): string {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, "0")
-  const day = String(today.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
+  /** Pré-remplit le mois concerné (relance des quittances manquantes). */
+  initialPeriodMonth?: string
 }
 
 export function QuittanceDialog({
@@ -46,18 +42,21 @@ export function QuittanceDialog({
   profile,
   tenant,
   onLogged,
+  initialPeriodMonth,
 }: QuittanceDialogProps) {
-  const [paymentDate, setPaymentDate] = useState(todayIsoDate())
-  const [periodMonth, setPeriodMonth] = useState(monthFromDate(todayIsoDate()))
+  const hasInitialPeriod =
+    initialPeriodMonth !== undefined && isValidPeriodMonth(initialPeriodMonth)
+  const [paymentDate, setPaymentDate] = useState(() =>
+    hasInitialPeriod ? `${initialPeriodMonth}-01` : todayIsoDate(),
+  )
+  const [periodMonth, setPeriodMonth] = useState(() =>
+    hasInitialPeriod ? initialPeriodMonth : monthFromDate(todayIsoDate()),
+  )
   const { previewUrl, isGenerating, error, generate, download, revokePreview } =
     useQuittancePdf()
 
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen) {
-      revokePreview()
-      setPaymentDate(todayIsoDate())
-      setPeriodMonth(monthFromDate(todayIsoDate()))
-    }
+    if (!nextOpen) revokePreview()
     onOpenChange(nextOpen)
   }
 
