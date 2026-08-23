@@ -179,7 +179,7 @@ export function QuittanceDialog({
                 onClick={handleDownload}
                 disabled={isGenerating || !fields}
               >
-                Télécharger le PDF
+                Générer la quittance
               </Button>
             </DialogFooter>
           </div>
