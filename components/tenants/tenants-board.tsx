@@ -6,7 +6,6 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { AddTenantDialog } from "@/components/tenants/add-tenant-dialog"
-import { EditTenantDialog } from "@/components/tenants/edit-tenant-dialog"
 import { MissingQuittancesView } from "@/components/tenants/missing-quittances-view"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -51,12 +50,10 @@ function TenantCard({
   profile,
   tenant,
   currentMonth,
-  onEdit,
 }: {
   profile: Profile
   tenant: Tenant
   currentMonth: string
-  onEdit: (tenant: Tenant) => void
 }) {
   const rate = effectiveRateAt(tenant, currentMonth)
   return (
@@ -65,20 +62,17 @@ function TenantCard({
       className="group relative block"
     >
       <Card className="relative h-full text-left transition-colors group-hover:bg-muted/40">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="absolute top-4 right-4 bg-secondary"
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            onEdit(tenant)
-          }}
+        <Link
+          href={`/${profile.id}/tenants/${tenant.id}/edit`}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "icon-sm" }),
+            "absolute top-4 right-4 bg-secondary",
+          )}
+          onClick={(event) => event.stopPropagation()}
         >
           <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
           <span className="sr-only">Modifier {tenant.name}</span>
-        </Button>
+        </Link>
         <CardHeader>
           <TenantAvatar seed={tenant.avatarSeed} name={tenant.name} size="lg" />
           <CardTitle>
@@ -123,12 +117,10 @@ function TenantGrid({
   profile,
   tenants,
   currentMonth,
-  onEdit,
 }: {
   profile: Profile
   tenants: Tenant[]
   currentMonth: string
-  onEdit: (tenant: Tenant) => void
 }) {
   const today = todayIsoDate()
   const active = tenants.filter(
@@ -151,7 +143,6 @@ function TenantGrid({
               profile={profile}
               tenant={tenant}
               currentMonth={currentMonth}
-              onEdit={onEdit}
             />
           ))}
         </div>
@@ -169,7 +160,6 @@ function TenantGrid({
                 profile={profile}
                 tenant={tenant}
                 currentMonth={currentMonth}
-                onEdit={onEdit}
               />
             ))}
           </div>
@@ -183,31 +173,9 @@ export function TenantsBoard({
   profile,
   hideBackLink = false,
 }: TenantsBoardProps) {
-  const { tenants, isLoaded, addTenant, updateTenant, refresh } = useTenants(
-    profile.id,
-  )
+  const { tenants, isLoaded, addTenant } = useTenants(profile.id)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [editTenantDialogOpen, setEditTenantDialogOpen] = useState(false)
-  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null)
   const currentMonth = monthFromDate(todayIsoDate())
-
-  function openEditTenantDialog(tenant: Tenant) {
-    setEditingTenant(tenant)
-    setEditTenantDialogOpen(true)
-  }
-
-  async function handleTenantUpdate(update: {
-    civility: Tenant["civility"]
-    name: string
-    rentAmount: number
-    chargesAmount: number
-    firstQuittanceDate: string | null
-    lastQuittanceDate: string | null
-    location: string | null
-  }) {
-    if (!editingTenant) return
-    await updateTenant(editingTenant.id, update)
-  }
 
   const availableLocations = [
     ...new Set(tenants.map((t) => t.location).filter(Boolean) as string[]),
@@ -256,7 +224,6 @@ export function TenantsBoard({
               profile={profile}
               tenants={tenants}
               currentMonth={currentMonth}
-              onEdit={openEditTenantDialog}
             />
           )}
         </TabsPanel>
@@ -275,15 +242,6 @@ export function TenantsBoard({
         onOpenChange={setAddDialogOpen}
         availableLocations={availableLocations}
         onSubmit={addTenant}
-      />
-
-      <EditTenantDialog
-        open={editTenantDialogOpen}
-        onOpenChange={setEditTenantDialogOpen}
-        tenant={editingTenant}
-        availableLocations={availableLocations}
-        onSubmit={handleTenantUpdate}
-        onTenantChanged={refresh}
       />
     </div>
   )

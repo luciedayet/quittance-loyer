@@ -1,0 +1,448 @@
+"use client"
+
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Delete02Icon } from "@hugeicons/core-free-icons"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+
+import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import type { Profile } from "@/lib/profiles"
+import { formatEuros, periodFromMonth } from "@/lib/quittance"
+import type { RentChange, Tenant, TenantCivility } from "@/lib/tenants"
+import { cn } from "@/lib/utils"
+
+type TenantEditViewProps = {
+  profile: Profile
+  tenant: Tenant
+  availableLocations: string[]
+}
+
+export function TenantEditView({
+  profile,
+  tenant: initialTenant,
+  availableLocations,
+}: TenantEditViewProps) {
+  const router = useRouter()
+  const [tenant] = useState(initialTenant)
+
+  // --- champs principaux ---
+  const [civility, setCivility] = useState<TenantCivility>(tenant.civility)
+  const [name, setName] = useState(tenant.name)
+  const [rentAmount, setRentAmount] = useState(String(tenant.rentAmount))
+  const [chargesAmount, setChargesAmount] = useState(String(tenant.chargesAmount))
+  const [firstQuittanceDate, setFirstQuittanceDate] = useState(
+    tenant.firstQuittanceDate ?? "",
+  )
+  const [lastQuittanceDate, setLastQuittanceDate] = useState(
+    tenant.lastQuittanceDate ?? "",
+  )
+  const [location, setLocation] = useState(tenant.location ?? "")
+  const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  // --- augmentations ---
+  const [rentHistory, setRentHistory] = useState<RentChange[]>(
+    tenant.rentHistory,
+  )
+  const [newEffectiveMonth, setNewEffectiveMonth] = useState("")
+  const [newRentAmount, setNewRentAmount] = useState("")
+  const [newChargesAmount, setNewChargesAmount] = useState("")
+  const [historyError, setHistoryError] = useState<string | null>(null)
+  const [isSavingHistory, setIsSavingHistory] = useState(false)
+
+  // --- accès locataire ---
+  const [email, setEmail] = useState(tenant.email ?? "")
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+  const [isInviting, setIsInviting] = useState(false)
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const rent = Number.parseFloat(rentAmount.replace(",", "."))
+    const charges = Number.parseFloat(chargesAmount.replace(",", "."))
+
+    if (!name.trim()) { setError("Le nom du locataire est requis."); return }
+    if (!Number.isFinite(rent) || rent <= 0) { setError("Le loyer doit être un montant positif."); return }
+    if (!Number.isFinite(charges) || charges < 0) { setError("Les charges doivent être un montant positif ou nul."); return }
+
+    setIsSaving(true)
+    setError(null)
+    setSaved(false)
+
+    try {
+      const response = await fetch(`/api/tenants/${tenant.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          civility,
+          name: name.trim(),
+          rentAmount: rent,
+          chargesAmount: charges,
+          firstQuittanceDate: firstQuittanceDate || null,
+          lastQuittanceDate: lastQuittanceDate || null,
+          location: location.trim() || null,
+        }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error ?? "Erreur lors de l'enregistrement.")
+      setSaved(true)
+      router.refresh()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Erreur lors de l'enregistrement.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function persistRentHistory(nextHistory: RentChange[]) {
+    setIsSavingHistory(true)
+    setHistoryError(null)
+    try {
+      const response = await fetch(`/api/tenants/${tenant.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rentHistory: nextHistory }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error ?? "Erreur lors de la mise à jour.")
+      setRentHistory(nextHistory)
+    } catch (cause) {
+      setHistoryError(cause instanceof Error ? cause.message : "Erreur lors de la mise à jour.")
+    } finally {
+      setIsSavingHistory(false)
+    }
+  }
+
+  async function handleAddRentChange() {
+    const rent = Number.parseFloat(newRentAmount.replace(",", "."))
+    const charges = Number.parseFloat(newChargesAmount.replace(",", "."))
+    if (!newEffectiveMonth) { setHistoryError("Le mois d'effet est requis."); return }
+    if (!Number.isFinite(rent) || rent <= 0) { setHistoryError("Le nouveau loyer doit être un montant positif."); return }
+    if (!Number.isFinite(charges) || charges < 0) { setHistoryError("Les nouvelles charges doivent être un montant positif ou nul."); return }
+
+    const entry: RentChange = {
+      id: crypto.randomUUID(),
+      effectiveMonth: newEffectiveMonth,
+      rentAmount: rent,
+      chargesAmount: charges,
+    }
+    await persistRentHistory([...rentHistory, entry])
+    setNewEffectiveMonth("")
+    setNewRentAmount("")
+    setNewChargesAmount("")
+  }
+
+  async function handleInvite() {
+    if (!email.trim()) return
+    setIsInviting(true)
+    setInviteError(null)
+    try {
+      const response = await fetch(`/api/tenants/${tenant.id}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error ?? "Erreur lors de l'invitation.")
+      setInviteCode(data.verificationCode as string)
+    } catch (cause) {
+      setInviteError(cause instanceof Error ? cause.message : "Erreur lors de l'invitation.")
+    } finally {
+      setIsInviting(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+      <div className="space-y-2">
+        <Link
+          href={`/${profile.id}`}
+          className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+        >
+          ← Retour aux locataires
+        </Link>
+        <h1 className="font-heading text-2xl font-medium">
+          Modifier {tenant.civility} {tenant.name}
+        </h1>
+      </div>
+
+      {/* Informations principales */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations</CardTitle>
+          <CardDescription>
+            Ces informations sont utilisées sur les quittances générées.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-civility">Civilité</Label>
+              <Select
+                value={civility}
+                onValueChange={(v) => setCivility(v as TenantCivility)}
+              >
+                <SelectTrigger id="edit-civility" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M.">M.</SelectItem>
+                  <SelectItem value="Mme">Mme</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Nom du locataire</Label>
+              <Input
+                id="edit-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Dupont"
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-rent">Loyer hors charges (€)</Label>
+                <Input
+                  id="edit-rent"
+                  inputMode="decimal"
+                  value={rentAmount}
+                  onChange={(e) => setRentAmount(e.target.value)}
+                  placeholder="650,00"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-charges">Provision pour charges (€)</Label>
+                <Input
+                  id="edit-charges"
+                  inputMode="decimal"
+                  value={chargesAmount}
+                  onChange={(e) => setChargesAmount(e.target.value)}
+                  placeholder="50,00"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-location">Lieu</Label>
+              <Input
+                id="edit-location"
+                list="edit-page-location-options"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="ex. Chambre 2"
+              />
+              <datalist id="edit-page-location-options">
+                {availableLocations.map((loc) => (
+                  <option key={loc} value={loc} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-first-quittance">Première quittance</Label>
+                <Input
+                  id="edit-first-quittance"
+                  type="date"
+                  value={firstQuittanceDate}
+                  onChange={(e) => setFirstQuittanceDate(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-last-quittance">Dernière quittance</Label>
+                <Input
+                  id="edit-last-quittance"
+                  type="date"
+                  value={lastQuittanceDate}
+                  onChange={(e) => setLastQuittanceDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {saved ? (
+              <p className="text-sm text-primary">Modifications enregistrées.</p>
+            ) : null}
+
+            <div>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? "Enregistrement..." : "Enregistrer"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Augmentations de loyer */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Augmentations de loyer</CardTitle>
+          <CardDescription>
+            Le loyer et les charges de base s&apos;appliquent tant qu&apos;aucune
+            augmentation n&apos;est enregistrée pour une période donnée.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {rentHistory.length > 0 ? (
+            <ul className="grid gap-2">
+              {[...rentHistory]
+                .sort((a, b) => (a.effectiveMonth < b.effectiveMonth ? 1 : -1))
+                .map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex items-center justify-between rounded-2xl bg-muted/50 px-3 py-2 text-sm"
+                  >
+                    <span className="capitalize">
+                      À partir de{" "}
+                      {periodFromMonth(entry.effectiveMonth)?.label ??
+                        entry.effectiveMonth}{" "}
+                      : {formatEuros(entry.rentAmount)} € + charges{" "}
+                      {formatEuros(entry.chargesAmount)} €
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={isSavingHistory}
+                      onClick={() =>
+                        persistRentHistory(
+                          rentHistory.filter((e) => e.id !== entry.id),
+                        )
+                      }
+                    >
+                      <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                      <span className="sr-only">Supprimer cette augmentation</span>
+                    </Button>
+                  </li>
+                ))}
+            </ul>
+          ) : null}
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-2">
+              <Label htmlFor="rent-change-month">Mois d&apos;effet</Label>
+              <Input
+                id="rent-change-month"
+                type="month"
+                value={newEffectiveMonth}
+                onChange={(e) => setNewEffectiveMonth(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="rent-change-rent">Nouveau loyer (€)</Label>
+              <Input
+                id="rent-change-rent"
+                inputMode="decimal"
+                value={newRentAmount}
+                onChange={(e) => setNewRentAmount(e.target.value)}
+                placeholder="680,00"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="rent-change-charges">Nouvelles charges (€)</Label>
+              <Input
+                id="rent-change-charges"
+                inputMode="decimal"
+                value={newChargesAmount}
+                onChange={(e) => setNewChargesAmount(e.target.value)}
+                placeholder="55,00"
+              />
+            </div>
+          </div>
+
+          {historyError ? (
+            <p className="text-sm text-destructive">{historyError}</p>
+          ) : null}
+
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSavingHistory}
+              onClick={handleAddRentChange}
+            >
+              {isSavingHistory ? "Enregistrement..." : "Ajouter une augmentation"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Accès locataire */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Accès locataire</CardTitle>
+          <CardDescription>
+            {tenant.hasAccount
+              ? "Compte activé : le locataire peut consulter ses quittances."
+              : tenant.verificationCode
+                ? "Invitation envoyée, en attente d'activation."
+                : "Pas encore invité."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="edit-email">Email du locataire</Label>
+            <Input
+              id="edit-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="locataire@exemple.fr"
+            />
+          </div>
+
+          {inviteCode ? (
+            <p className="rounded-2xl bg-muted/50 p-3 text-sm">
+              Code à transmettre au locataire :{" "}
+              <span className="font-mono font-medium">{inviteCode}</span>
+              <br />
+              <span className="text-muted-foreground">
+                Ce code ne s&apos;affichera qu&apos;une fois ici.
+              </span>
+            </p>
+          ) : null}
+
+          {inviteError ? (
+            <p className="text-sm text-destructive">{inviteError}</p>
+          ) : null}
+
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!email.trim() || isInviting}
+              onClick={handleInvite}
+            >
+              {isInviting
+                ? "Génération..."
+                : tenant.hasAccount || tenant.verificationCode
+                  ? "Générer un nouveau code d'activation"
+                  : "Générer un code d'activation"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
