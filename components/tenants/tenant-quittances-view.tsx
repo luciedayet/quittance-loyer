@@ -20,7 +20,9 @@ import { useQuittancePdf } from "@/components/pdf/use-quittance-pdf"
 import type { QuittanceRecord } from "@/lib/notion/quittances"
 import type { Profile } from "@/lib/profiles"
 import {
+  arrivalStartMonth,
   buildQuittanceFields,
+  departureEndMonth,
   formatEuros,
   formatIsoDate,
   monthFromDate,
@@ -66,11 +68,10 @@ export function TenantQuittancesView({
   const missingMonths = useMemo(() => {
     if (!tenant.firstQuittanceDate) return []
     const currentMonth = monthFromDate(todayIsoDate())
-    const startMonth = monthFromDate(tenant.firstQuittanceDate)
-    const endMonth = tenant.lastQuittanceDate
-      ? monthFromDate(tenant.lastQuittanceDate)
-      : currentMonth
-    const expected = monthsBetweenInclusive(startMonth, endMonth > currentMonth ? currentMonth : endMonth)
+    const startMonth = arrivalStartMonth(tenant.firstQuittanceDate)
+    const endMonth = departureEndMonth(tenant.lastQuittanceDate, currentMonth)
+    if (startMonth > endMonth) return []
+    const expected = monthsBetweenInclusive(startMonth, endMonth)
     const existing = new Set(quittances.map((q) => q.periodMonth))
     return expected.filter((m) => !existing.has(m))
   }, [tenant, quittances])

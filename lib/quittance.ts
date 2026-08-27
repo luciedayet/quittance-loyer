@@ -98,6 +98,43 @@ export function todayIsoDate(): string {
   return `${year}-${month}-${day}`
 }
 
+export function nextIsoMonth(isoMonth: string): string {
+  const [year, month] = isoMonth.split("-").map(Number)
+  return month === 12
+    ? `${year + 1}-01`
+    : `${year}-${String(month + 1).padStart(2, "0")}`
+}
+
+export function prevIsoMonth(isoMonth: string): string {
+  const [year, month] = isoMonth.split("-").map(Number)
+  return month === 1
+    ? `${year - 1}-12`
+    : `${year}-${String(month - 1).padStart(2, "0")}`
+}
+
+function isLastDayOfMonth(isoDate: string): boolean {
+  const [year, month, day] = isoDate.split("-").map(Number)
+  return day === new Date(year, month, 0).getDate()
+}
+
+/** Mois de début pour les quittances à générer depuis une date d'arrivée. */
+export function arrivalStartMonth(arrivalDate: string): string {
+  const month = monthFromDate(arrivalDate)
+  const day = Number(arrivalDate.split("-")[2])
+  return day === 1 ? month : nextIsoMonth(month)
+}
+
+/** Mois de fin pour les quittances à générer depuis une date de départ (null = mois courant). */
+export function departureEndMonth(
+  departureDate: string | null | undefined,
+  currentMonth: string,
+): string {
+  if (!departureDate) return currentMonth
+  const month = monthFromDate(departureDate)
+  const end = isLastDayOfMonth(departureDate) ? month : prevIsoMonth(month)
+  return end < currentMonth ? end : currentMonth
+}
+
 export function monthsBetweenInclusive(
   startMonth: string,
   endMonth: string,

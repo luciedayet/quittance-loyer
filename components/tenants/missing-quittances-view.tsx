@@ -8,6 +8,8 @@ import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { useProfileQuittances } from "@/hooks/use-profile-quittances"
 import {
+  arrivalStartMonth,
+  departureEndMonth,
   monthFromDate,
   monthsBetweenInclusive,
   periodFromMonth,
@@ -89,8 +91,10 @@ export function MissingQuittancesView({
       if (!tenant.firstQuittanceDate) {
         return { tenant, missingMonths: [], hasStartDate: false }
       }
-      const startMonth = monthFromDate(tenant.firstQuittanceDate)
-      const expectedMonths = monthsBetweenInclusive(startMonth, currentMonth)
+      const startMonth = arrivalStartMonth(tenant.firstQuittanceDate)
+      const endMonth = departureEndMonth(tenant.lastQuittanceDate, currentMonth)
+      if (startMonth > endMonth) return { tenant, missingMonths: [], hasStartDate: true }
+      const expectedMonths = monthsBetweenInclusive(startMonth, endMonth)
       const existingMonths = monthsByTenant.get(tenant.id) ?? new Set()
       const missingMonths = expectedMonths.filter((m) => !existingMonths.has(m))
       return { tenant, missingMonths, hasStartDate: true }

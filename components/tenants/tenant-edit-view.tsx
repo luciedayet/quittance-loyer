@@ -261,7 +261,7 @@ export function TenantEditView({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="edit-first-quittance">Première quittance</Label>
+                <Label htmlFor="edit-first-quittance">Date d&apos;arrivée</Label>
                 <Input
                   id="edit-first-quittance"
                   type="date"
@@ -270,7 +270,7 @@ export function TenantEditView({
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-last-quittance">Dernière quittance</Label>
+                <Label htmlFor="edit-last-quittance">Date de départ</Label>
                 <Input
                   id="edit-last-quittance"
                   type="date"

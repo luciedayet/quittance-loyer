@@ -92,17 +92,14 @@ function TenantCard({
         <CardContent className="flex flex-col gap-2">
           <div className="text-xs text-muted-foreground">
             <p>
-              Première quittance :{" "}
+              Arrivée :{" "}
               {tenant.firstQuittanceDate
                 ? formatIsoDate(tenant.firstQuittanceDate)
                 : "—"}
             </p>
-            <p>
-              Dernière quittance :{" "}
-              {tenant.lastQuittanceDate
-                ? formatIsoDate(tenant.lastQuittanceDate)
-                : "—"}
-            </p>
+            {tenant.lastQuittanceDate ? (
+              <p>Départ : {formatIsoDate(tenant.lastQuittanceDate)}</p>
+            ) : null}
           </div>
           <p className="mt-auto pt-2 text-sm font-medium text-primary">
             Gérer les quittances →
