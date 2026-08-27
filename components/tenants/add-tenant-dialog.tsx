@@ -172,7 +172,7 @@ export function AddTenantDialog({
               list="tenant-location-options"
               value={location}
               onChange={(event) => setLocation(event.target.value)}
-              placeholder="ex. Paris 11e"
+              placeholder="ex. Chambre 2"
             />
             <datalist id="tenant-location-options">
               {availableLocations.map((loc) => (
