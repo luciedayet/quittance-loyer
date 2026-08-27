@@ -395,40 +395,34 @@ function QuittancesListCard({
     )
   }
 
+  if (quittances.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Aucune quittance générée pour l&apos;instant.
+      </p>
+    )
+  }
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Historique des quittances</CardTitle>
-        <CardDescription>
-          {quittances.length === 0
-            ? "Aucune quittance générée pour l'instant."
-            : `${quittances.length} quittance${quittances.length > 1 ? "s" : ""} générée${quittances.length > 1 ? "s" : ""}.`}
-        </CardDescription>
-      </CardHeader>
-      {quittances.length > 0 ? (
-        <CardContent>
-          {years.length > 1 ? (
-            <Tabs defaultValue={years[0]}>
-              <TabsList className="mb-4">
-                {years.map((year) => (
-                  <TabsTab key={year} value={year}>
-                    {year}
-                  </TabsTab>
-                ))}
-              </TabsList>
-              {years.map((year) => (
-                <TabsPanel key={year} value={year}>
-                  <QuittancesList
-                    list={quittances.filter((q) => q.periodMonth.startsWith(year))}
-                  />
-                </TabsPanel>
-              ))}
-            </Tabs>
-          ) : (
-            <QuittancesList list={quittances} />
-          )}
-        </CardContent>
-      ) : null}
+      <CardContent className="pt-6">
+        <Tabs defaultValue={years[0]}>
+          <TabsList className="mb-4">
+            {years.map((year) => (
+              <TabsTab key={year} value={year}>
+                {year}
+              </TabsTab>
+            ))}
+          </TabsList>
+          {years.map((year) => (
+            <TabsPanel key={year} value={year}>
+              <QuittancesList
+                list={quittances.filter((q) => q.periodMonth.startsWith(year))}
+              />
+            </TabsPanel>
+          ))}
+        </Tabs>
+      </CardContent>
     </Card>
   )
 }
