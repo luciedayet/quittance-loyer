@@ -133,6 +133,11 @@ export async function deleteQuittance(quittanceId: string): Promise<void> {
   await archivePage(quittanceId)
 }
 
+export async function deleteAllQuittancesForTenant(tenantId: string): Promise<void> {
+  const quittances = await listQuittancesForTenant(tenantId)
+  await Promise.all(quittances.map((q) => archivePage(q.id)))
+}
+
 export async function listQuittancesForProfile(
   profileId: string,
 ): Promise<QuittanceRecord[]> {

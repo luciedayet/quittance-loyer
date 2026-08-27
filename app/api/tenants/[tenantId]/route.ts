@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { assertCanManageTenant } from "@/lib/auth/ownership"
 import { requireSession } from "@/lib/auth/session"
+import { deleteAllQuittancesForTenant } from "@/lib/notion/quittances"
 import { removeTenant, updateTenant } from "@/lib/notion/tenants"
 import { isValidIsoDate, isValidPeriodMonth } from "@/lib/quittance"
 import type { RentChange, TenantCivility } from "@/lib/tenants"
@@ -147,6 +148,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (ownershipError) return ownershipError
 
   try {
+    await deleteAllQuittancesForTenant(tenantId)
     await removeTenant(tenantId)
     return NextResponse.json({ ok: true })
   } catch (error) {

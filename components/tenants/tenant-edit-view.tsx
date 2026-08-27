@@ -14,6 +14,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -73,6 +81,11 @@ export function TenantEditView({
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [isInviting, setIsInviting] = useState(false)
+
+  // --- suppression ---
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -148,6 +161,19 @@ export function TenantEditView({
     setNewEffectiveMonth("")
     setNewRentAmount("")
     setNewChargesAmount("")
+  }
+
+  async function handleDelete() {
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      const response = await fetch(`/api/tenants/${tenant.id}`, { method: "DELETE" })
+      if (!response.ok) throw new Error("Erreur lors de la suppression.")
+      router.push(`/${profile.id}`)
+    } catch (cause) {
+      setDeleteError(cause instanceof Error ? cause.message : "Erreur lors de la suppression.")
+      setIsDeleting(false)
+    }
   }
 
   async function handleInvite() {
@@ -387,6 +413,59 @@ export function TenantEditView({
           </div>
         </CardContent>
       </Card>
+
+      {/* Zone dangereuse */}
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-destructive">Zone dangereuse</CardTitle>
+          <CardDescription>
+            La suppression est définitive et entraîne la suppression de toutes les quittances associées.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {deleteError ? <p className="mb-3 text-sm text-destructive">{deleteError}</p> : null}
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            Supprimer ce locataire
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer {tenant.civility} {tenant.name} ?</DialogTitle>
+            <DialogDescription>
+              Cette action est irréversible. Elle supprimera définitivement le locataire{" "}
+              <span className="font-medium text-foreground">
+                {tenant.civility} {tenant.name}
+              </span>{" "}
+              ainsi que toutes ses quittances enregistrées.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={isDeleting}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={handleDelete}
+            >
+              {isDeleting ? "Suppression…" : "Supprimer définitivement"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Accès locataire */}
       <Card>

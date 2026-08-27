@@ -40,6 +40,17 @@ type TenantQuittancesViewProps = {
   readOnly?: boolean
 }
 
+function profileMissingFields(profile: Profile): string[] {
+  const missing: string[] = []
+  if (!profile.sciName.trim()) missing.push("Nom de la SCI")
+  if (!profile.managerName.trim()) missing.push("Nom du gérant")
+  if (!profile.city.trim()) missing.push("Ville")
+  if (profile.sciAddress.length === 0) missing.push("Adresse de la SCI")
+  if (profile.property.lines.length === 0) missing.push("Adresse du bien loué")
+  if (!profile.signatureSrc) missing.push("Signature")
+  return missing
+}
+
 function periodLabel(periodMonth: string): string {
   if (!/^\d{4}-\d{2}$/.test(periodMonth)) return periodMonth
   const [year, month] = periodMonth.split("-")
@@ -207,11 +218,45 @@ export function TenantQuittancesView({
           </TabsList>
 
           <TabsPanel value="generer">
-            <MissingMonthsList
-              tenant={tenant}
-              missingMonths={missingMonths}
-              onGenerate={openGenerateDialog}
-            />
+            {(() => {
+              const missing = profileMissingFields(profile)
+              if (missing.length > 0) {
+                return (
+                  <div className="flex flex-col items-center gap-4 py-12 text-center">
+                    <div className="flex size-16 items-center justify-center rounded-full bg-muted text-3xl">
+                      ⚙️
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-medium">Profil SCI incomplet</p>
+                      <p className="text-sm text-muted-foreground">
+                        Complétez votre profil SCI pour pouvoir générer des quittances.
+                      </p>
+                    </div>
+                    <ul className="rounded-2xl border border-border bg-muted/40 px-5 py-3 text-left text-sm">
+                      {missing.map((field) => (
+                        <li key={field} className="flex items-center gap-2 py-0.5 text-muted-foreground">
+                          <span className="text-destructive">✗</span> {field} manquant
+                          {field === "Signature" ? "e" : ""}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      href={`/${profile.id}/profile`}
+                      className={cn(buttonVariants({ variant: "default" }))}
+                    >
+                      Compléter le profil
+                    </Link>
+                  </div>
+                )
+              }
+              return (
+                <MissingMonthsList
+                  tenant={tenant}
+                  missingMonths={missingMonths}
+                  onGenerate={openGenerateDialog}
+                />
+              )
+            })()}
           </TabsPanel>
 
           <TabsPanel value="generees">
