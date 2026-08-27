@@ -85,14 +85,14 @@ function TenantCard({
             {tenant.civility} {tenant.name}
           </CardTitle>
           <CardDescription>
-            Loyer {formatEuros(rate.rentAmount)} € · Charges{" "}
-            {formatEuros(rate.chargesAmount)} €
+            {formatEuros(rate.rentAmount + rate.chargesAmount)} €{" "}
+            <span className="text-xs">
+              (loyer {formatEuros(rate.rentAmount)} + charges{" "}
+              {formatEuros(rate.chargesAmount)})
+            </span>
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm font-medium text-primary">
-            Gérer les quittances →
-          </p>
+        <CardContent className="flex flex-col gap-2">
           <div className="text-xs text-muted-foreground">
             <p>
               Première quittance :{" "}
@@ -107,6 +107,9 @@ function TenantCard({
                 : "—"}
             </p>
           </div>
+          <p className="mt-auto pt-2 text-sm font-medium text-primary">
+            Gérer les quittances →
+          </p>
         </CardContent>
       </Card>
     </Link>
