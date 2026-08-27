@@ -47,6 +47,144 @@ function TenantSkeleton() {
   )
 }
 
+function TenantCard({
+  profile,
+  tenant,
+  currentMonth,
+  onEdit,
+}: {
+  profile: Profile
+  tenant: Tenant
+  currentMonth: string
+  onEdit: (tenant: Tenant) => void
+}) {
+  const rate = effectiveRateAt(tenant, currentMonth)
+  return (
+    <Link
+      href={`/${profile.id}/tenants/${tenant.id}`}
+      className="group relative block"
+    >
+      <Card className="relative h-full text-left transition-colors group-hover:bg-muted/40">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="absolute top-4 right-4 bg-secondary"
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            onEdit(tenant)
+          }}
+        >
+          <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+          <span className="sr-only">Modifier {tenant.name}</span>
+        </Button>
+        <CardHeader>
+          <TenantAvatar seed={tenant.avatarSeed} name={tenant.name} size="lg" />
+          <CardTitle>
+            {tenant.civility} {tenant.name}
+          </CardTitle>
+          <CardDescription>
+            Loyer {formatEuros(rate.rentAmount)} € · Charges{" "}
+            {formatEuros(rate.chargesAmount)} €
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm font-medium text-primary">
+            Gérer les quittances →
+          </p>
+          <div className="text-xs text-muted-foreground">
+            <p>
+              Première quittance :{" "}
+              {tenant.firstQuittanceDate
+                ? formatIsoDate(tenant.firstQuittanceDate)
+                : "—"}
+            </p>
+            <p>
+              Dernière quittance :{" "}
+              {tenant.lastQuittanceDate
+                ? formatIsoDate(tenant.lastQuittanceDate)
+                : "—"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
+function TenantGrid({
+  profile,
+  tenants,
+  currentMonth,
+  onEdit,
+  onAdd,
+}: {
+  profile: Profile
+  tenants: Tenant[]
+  currentMonth: string
+  onEdit: (tenant: Tenant) => void
+  onAdd: () => void
+}) {
+  const today = todayIsoDate()
+  const active = tenants.filter(
+    (t) => !t.lastQuittanceDate || t.lastQuittanceDate >= today,
+  )
+  const inactive = tenants.filter(
+    (t) => t.lastQuittanceDate && t.lastQuittanceDate < today,
+  )
+
+  return (
+    <div className="space-y-8">
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Actifs
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {active.map((tenant) => (
+            <TenantCard
+              key={tenant.id}
+              profile={profile}
+              tenant={tenant}
+              currentMonth={currentMonth}
+              onEdit={onEdit}
+            />
+          ))}
+          <button type="button" className="text-left" onClick={onAdd}>
+            <Card className="flex h-full min-h-44 items-center justify-center border-dashed transition-colors hover:bg-muted/40">
+              <CardContent className="flex flex-col items-center gap-2 py-8 text-center">
+                <span className="text-3xl leading-none text-muted-foreground">
+                  +
+                </span>
+                <p className="font-medium">Ajouter un locataire</p>
+              </CardContent>
+            </Card>
+          </button>
+        </div>
+      </section>
+
+      {inactive.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Inactifs
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {inactive.map((tenant) => (
+              <TenantCard
+                key={tenant.id}
+                profile={profile}
+                tenant={tenant}
+                currentMonth={currentMonth}
+                onEdit={onEdit}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
 export function TenantsBoard({
   profile,
   hideBackLink = false,
@@ -99,96 +237,21 @@ export function TenantsBoard({
         </TabsList>
 
         <TabsPanel value="locataires">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {!isLoaded
-              ? Array.from({ length: 3 }).map((_, index) => (
-                  <TenantSkeleton key={`skeleton-${index}`} />
-                ))
-              : null}
-
-            {isLoaded
-              ? tenants.map((tenant) => {
-                  const rate = effectiveRateAt(tenant, currentMonth)
-
-                  return (
-                    <Link
-                      key={tenant.id}
-                      href={`/${profile.id}/tenants/${tenant.id}`}
-                      className="group relative block"
-                    >
-                      <Card className="relative h-full text-left transition-colors group-hover:bg-muted/40">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className="absolute top-4 right-4 bg-secondary"
-                          onClick={(event) => {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            openEditTenantDialog(tenant)
-                          }}
-                        >
-                          <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                          <span className="sr-only">
-                            Modifier {tenant.name}
-                          </span>
-                        </Button>
-                        <CardHeader>
-                          <TenantAvatar
-                            seed={tenant.avatarSeed}
-                            name={tenant.name}
-                            size="lg"
-                          />
-                          <CardTitle>
-                            {tenant.civility} {tenant.name}
-                          </CardTitle>
-                          <CardDescription>
-                            Loyer {formatEuros(rate.rentAmount)} € · Charges{" "}
-                            {formatEuros(rate.chargesAmount)} €
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                          <p className="text-sm font-medium text-primary">
-                            Gérer les quittances →
-                          </p>
-                          <div className="text-xs text-muted-foreground">
-                            <p>
-                              Première quittance :{" "}
-                              {tenant.firstQuittanceDate
-                                ? formatIsoDate(tenant.firstQuittanceDate)
-                                : "—"}
-                            </p>
-                            <p>
-                              Dernière quittance :{" "}
-                              {tenant.lastQuittanceDate
-                                ? formatIsoDate(tenant.lastQuittanceDate)
-                                : "—"}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  )
-                })
-              : null}
-
-            {isLoaded ? (
-              <button
-                type="button"
-                className="text-left"
-                onClick={() => setAddDialogOpen(true)}
-              >
-                <Card className="flex h-full min-h-44 items-center justify-center border-dashed transition-colors hover:bg-muted/40">
-                  <CardContent className="flex flex-col items-center gap-2 py-8 text-center">
-                    <span className="text-3xl leading-none text-muted-foreground">
-                      +
-                    </span>
-                    <p className="font-medium">Ajouter un locataire</p>
-                  </CardContent>
-                </Card>
-              </button>
-            ) : null}
-          </div>
+          {!isLoaded ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <TenantSkeleton key={`skeleton-${index}`} />
+              ))}
+            </div>
+          ) : (
+            <TenantGrid
+              profile={profile}
+              tenants={tenants}
+              currentMonth={currentMonth}
+              onEdit={openEditTenantDialog}
+              onAdd={() => setAddDialogOpen(true)}
+            />
+          )}
         </TabsPanel>
 
         <TabsPanel value="quittances">
