@@ -1,11 +1,10 @@
 "use client"
 
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Delete02Icon, Edit02Icon } from "@hugeicons/core-free-icons"
+import { Delete02Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { useCallback, useMemo, useState } from "react"
 
-import { EditQuittanceDialog } from "@/components/tenants/edit-quittance-dialog"
 import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -58,8 +57,6 @@ export function TenantQuittancesView({
   const [quittances, setQuittances] = useState(initialQuittances)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [viewingId, setViewingId] = useState<string | null>(null)
-  const [editingQuittance, setEditingQuittance] =
-    useState<QuittanceRecord | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState<string | undefined>()
@@ -130,24 +127,6 @@ export function TenantQuittancesView({
     setQuittances(data.quittances as QuittanceRecord[])
   }, [tenant.id])
 
-  async function handleEditSubmit(update: {
-    periodMonth: string
-    paymentDate: string
-    totalAmount: number
-  }) {
-    if (!editingQuittance) return
-    const response = await fetch(`/api/quittances/${editingQuittance.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(update),
-    })
-    const data = await response.json().catch(() => null)
-    if (!response.ok) {
-      throw new Error(data?.error ?? "Erreur lors de la mise à jour.")
-    }
-    await refreshQuittances()
-  }
-
   async function handleDeleteQuittance(quittance: QuittanceRecord) {
     if (
       !window.confirm(
@@ -203,7 +182,6 @@ export function TenantQuittancesView({
           deletingId={deletingId}
           onView={handleView}
           onDownload={handleDownload}
-          onEdit={setEditingQuittance}
           onDelete={handleDeleteQuittance}
         />
       ) : (
@@ -244,7 +222,6 @@ export function TenantQuittancesView({
               deletingId={deletingId}
               onView={handleView}
               onDownload={handleDownload}
-              onEdit={setEditingQuittance}
               onDelete={handleDeleteQuittance}
             />
           </TabsPanel>
@@ -261,17 +238,6 @@ export function TenantQuittancesView({
         onLogged={refreshQuittances}
       />
 
-      {!readOnly && editingQuittance ? (
-        <EditQuittanceDialog
-          key={editingQuittance.id}
-          open={Boolean(editingQuittance)}
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen) setEditingQuittance(null)
-          }}
-          quittance={editingQuittance}
-          onSubmit={handleEditSubmit}
-        />
-      ) : null}
     </div>
   )
 }
@@ -346,7 +312,6 @@ type QuittancesListCardProps = {
   deletingId: string | null
   onView: (quittance: QuittanceRecord) => void
   onDownload: (quittance: QuittanceRecord) => void
-  onEdit: (quittance: QuittanceRecord) => void
   onDelete: (quittance: QuittanceRecord) => void
 }
 
@@ -358,9 +323,77 @@ function QuittancesListCard({
   deletingId,
   onView,
   onDownload,
-  onEdit,
   onDelete,
 }: QuittancesListCardProps) {
+  const years = [...new Set(quittances.map((q) => q.periodMonth.slice(0, 4)))].sort(
+    (a, b) => b.localeCompare(a),
+  )
+
+  function QuittancesList({ list }: { list: QuittanceRecord[] }) {
+    return (
+      <ul className="divide-y divide-border">
+        {list.map((quittance) => (
+          <li
+            key={quittance.id}
+            className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <p className="font-medium capitalize">
+                {periodLabel(quittance.periodMonth)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Payée le{" "}
+                {quittance.paymentDate
+                  ? formatIsoDate(quittance.paymentDate)
+                  : "date inconnue"}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="font-medium">
+                {formatEuros(quittance.totalAmount)} €
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!quittance.paymentDate || viewingId === quittance.id}
+                onClick={() => onView(quittance)}
+              >
+                {viewingId === quittance.id ? "Génération…" : "Voir"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={
+                  !quittance.paymentDate || downloadingId === quittance.id
+                }
+                onClick={() => onDownload(quittance)}
+              >
+                {downloadingId === quittance.id ? "Génération…" : "Télécharger"}
+              </Button>
+              {readOnly ? null : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="bg-secondary text-destructive"
+                  disabled={deletingId === quittance.id}
+                  onClick={() => onDelete(quittance)}
+                >
+                  <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                  <span className="sr-only">
+                    Supprimer la quittance de {periodLabel(quittance.periodMonth)}
+                  </span>
+                </Button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -373,86 +406,26 @@ function QuittancesListCard({
       </CardHeader>
       {quittances.length > 0 ? (
         <CardContent>
-          <ul className="divide-y divide-border">
-            {quittances.map((quittance) => (
-              <li
-                key={quittance.id}
-                className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-medium capitalize">
-                    {periodLabel(quittance.periodMonth)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Payée le{" "}
-                    {quittance.paymentDate
-                      ? formatIsoDate(quittance.paymentDate)
-                      : "date inconnue"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="font-medium">
-                    {formatEuros(quittance.totalAmount)} €
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={
-                      !quittance.paymentDate || viewingId === quittance.id
-                    }
-                    onClick={() => onView(quittance)}
-                  >
-                    {viewingId === quittance.id ? "Génération…" : "Voir"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={
-                      !quittance.paymentDate || downloadingId === quittance.id
-                    }
-                    onClick={() => onDownload(quittance)}
-                  >
-                    {downloadingId === quittance.id
-                      ? "Génération…"
-                      : "Télécharger"}
-                  </Button>
-                  {readOnly ? null : (
-                    <>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="bg-secondary"
-                        onClick={() => onEdit(quittance)}
-                      >
-                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                        <span className="sr-only">
-                          Modifier la quittance de{" "}
-                          {periodLabel(quittance.periodMonth)}
-                        </span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="bg-secondary text-destructive"
-                        disabled={deletingId === quittance.id}
-                        onClick={() => onDelete(quittance)}
-                      >
-                        <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                        <span className="sr-only">
-                          Supprimer la quittance de{" "}
-                          {periodLabel(quittance.periodMonth)}
-                        </span>
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          {years.length > 1 ? (
+            <Tabs defaultValue={years[0]}>
+              <TabsList className="mb-4">
+                {years.map((year) => (
+                  <TabsTab key={year} value={year}>
+                    {year}
+                  </TabsTab>
+                ))}
+              </TabsList>
+              {years.map((year) => (
+                <TabsPanel key={year} value={year}>
+                  <QuittancesList
+                    list={quittances.filter((q) => q.periodMonth.startsWith(year))}
+                  />
+                </TabsPanel>
+              ))}
+            </Tabs>
+          ) : (
+            <QuittancesList list={quittances} />
+          )}
         </CardContent>
       ) : null}
     </Card>
