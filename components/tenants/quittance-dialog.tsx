@@ -51,8 +51,10 @@ export function QuittanceDialog({
   const [periodMonth, setPeriodMonth] = useState(() =>
     hasInitialPeriod ? initialPeriodMonth : monthFromDate(todayIsoDate()),
   )
-  const { previewUrl, isGenerating, error, generate, download, revokePreview } =
+  const { previewUrl, isGenerating, error: previewError, generate, revokePreview } =
     useQuittancePdf()
+  const [isLogging, setIsLogging] = useState(false)
+  const [logError, setLogError] = useState<string | null>(null)
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) revokePreview()
@@ -69,26 +71,31 @@ export function QuittanceDialog({
     await generate(fields)
   }
 
-  async function handleDownload() {
+  async function handleGenerate() {
     if (!fields) return
-    await download(fields)
-
-    fetch("/api/quittances", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: buildQuittanceFilename(fields),
-        profileId: profile.id,
-        tenantId: fields.tenant.id,
-        periodMonth,
-        paymentDate,
-        totalAmount: fields.totalAmount,
-      }),
-    })
-      .then(() => onLogged?.())
-      .catch(() => {
-        // Historique optionnel : une erreur ici ne doit pas bloquer le téléchargement.
+    setIsLogging(true)
+    setLogError(null)
+    try {
+      const response = await fetch("/api/quittances", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: buildQuittanceFilename(fields),
+          profileId: profile.id,
+          tenantId: fields.tenant.id,
+          periodMonth,
+          paymentDate,
+          totalAmount: fields.totalAmount,
+        }),
       })
+      if (!response.ok) throw new Error("Erreur lors de l'enregistrement.")
+      onLogged?.()
+      handleOpenChange(false)
+    } catch (cause) {
+      setLogError(cause instanceof Error ? cause.message : "Erreur lors de l'enregistrement.")
+    } finally {
+      setIsLogging(false)
+    }
   }
 
   return (
@@ -162,7 +169,8 @@ export function QuittanceDialog({
               />
             ) : null}
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {previewError ? <p className="text-sm text-destructive">{previewError}</p> : null}
+            {logError ? <p className="text-sm text-destructive">{logError}</p> : null}
 
             <DialogFooter className="gap-2 sm:justify-between">
               <Button
@@ -176,10 +184,10 @@ export function QuittanceDialog({
               </Button>
               <Button
                 type="button"
-                onClick={handleDownload}
-                disabled={isGenerating || !fields}
+                onClick={handleGenerate}
+                disabled={isGenerating || isLogging || !fields}
               >
-                Télécharger le PDF
+                {isLogging ? "Enregistrement…" : "Générer la quittance"}
               </Button>
             </DialogFooter>
           </div>
