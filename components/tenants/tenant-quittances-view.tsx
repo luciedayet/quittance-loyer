@@ -3,9 +3,10 @@
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Delete02Icon, Edit02Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 
 import { EditQuittanceDialog } from "@/components/tenants/edit-quittance-dialog"
+import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -15,20 +16,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
 import { useQuittancePdf } from "@/components/pdf/use-quittance-pdf"
 import type { QuittanceRecord } from "@/lib/notion/quittances"
 import type { Profile } from "@/lib/profiles"
 import {
   buildQuittanceFields,
-  buildQuittanceFilename,
-  defaultIssueDate,
   formatEuros,
   formatIsoDate,
-  isValidIsoDate,
   monthFromDate,
+  monthsBetweenInclusive,
+  periodFromMonth,
   todayIsoDate,
 } from "@/lib/quittance"
 import { effectiveRateAt, type Tenant } from "@/lib/tenants"
@@ -38,7 +36,6 @@ type TenantQuittancesViewProps = {
   profile: Profile
   tenant: Tenant
   initialQuittances: QuittanceRecord[]
-  /** Vrai pour un vrai locataire ou un admin qui l'impersonne. */
   readOnly?: boolean
 }
 
@@ -52,166 +49,6 @@ function periodLabel(periodMonth: string): string {
   }).format(date)
 }
 
-type GenerationFormProps = {
-  profile: Profile
-  tenant: Tenant
-  onLogged: () => void
-}
-
-function GenerationForm({ profile, tenant, onLogged }: GenerationFormProps) {
-  const today = todayIsoDate()
-  const currentMonth = monthFromDate(today)
-
-  const [periodMonth, setPeriodMonth] = useState(currentMonth)
-  const [paymentDate, setPaymentDate] = useState(today)
-  const [issueDate, setIssueDate] = useState(() => defaultIssueDate(currentMonth))
-  const [isLogging, setIsLogging] = useState(false)
-  const [logError, setLogError] = useState<string | null>(null)
-
-  const { previewUrl, isGenerating, error, generate, download } = useQuittancePdf()
-
-  const fields = useMemo(
-    () => buildQuittanceFields(profile, tenant, paymentDate, periodMonth, issueDate),
-    [profile, tenant, paymentDate, periodMonth, issueDate],
-  )
-
-  useEffect(() => {
-    if (!fields) return
-    const timer = setTimeout(() => {
-      generate(fields)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [fields, generate])
-
-  async function handleGenerate() {
-    if (!fields) return
-    setLogError(null)
-    setIsLogging(true)
-    try {
-      await download(fields)
-      await fetch("/api/quittances", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: buildQuittanceFilename(fields),
-          profileId: profile.id,
-          tenantId: fields.tenant.id,
-          periodMonth,
-          paymentDate,
-          totalAmount: fields.totalAmount,
-        }),
-      })
-      onLogged()
-    } catch {
-      setLogError("Erreur lors de la génération.")
-    } finally {
-      setIsLogging(false)
-    }
-  }
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {/* Formulaire */}
-      <div className="flex flex-col gap-5">
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-          <div className="grid gap-2">
-            <Label htmlFor="gen-period-month">Mois concerné</Label>
-            <Input
-              id="gen-period-month"
-              type="month"
-              value={periodMonth}
-              onChange={(event) => {
-                const next = event.target.value
-                setPeriodMonth(next)
-                setIssueDate(defaultIssueDate(next))
-              }}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="gen-payment-date">Date de paiement</Label>
-            <Input
-              id="gen-payment-date"
-              type="date"
-              value={paymentDate}
-              onChange={(event) => {
-                const next = event.target.value
-                setPaymentDate(next)
-                if (isValidIsoDate(next)) {
-                  const nextMonth = monthFromDate(next)
-                  setPeriodMonth(nextMonth)
-                  setIssueDate(defaultIssueDate(nextMonth))
-                }
-              }}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="gen-issue-date">Date de génération</Label>
-            <Input
-              id="gen-issue-date"
-              type="date"
-              value={issueDate}
-              onChange={(event) => setIssueDate(event.target.value)}
-            />
-          </div>
-        </div>
-
-        {fields ? (
-          <div className="rounded-2xl bg-muted/50 p-4 text-sm leading-relaxed">
-            <p>
-              <span className="font-medium">Période :</span> du{" "}
-              {fields.periodStart} au {fields.periodEnd}
-            </p>
-            <p>
-              <span className="font-medium">Total :</span>{" "}
-              {fields.totalFormatted} € ({fields.amountInWords})
-            </p>
-            <p>
-              <span className="font-medium">Détail :</span> loyer{" "}
-              {fields.rentFormatted} € + charges {fields.chargesFormatted} €
-            </p>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Complétez les dates pour afficher le récapitulatif.
-          </p>
-        )}
-
-        {logError ? (
-          <p className="text-sm text-destructive">{logError}</p>
-        ) : null}
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-        <Button
-          type="button"
-          onClick={handleGenerate}
-          disabled={isGenerating || isLogging || !fields}
-          className="self-start"
-        >
-          {isGenerating || isLogging ? "Génération…" : "Générer la quittance"}
-        </Button>
-      </div>
-
-      {/* Aperçu */}
-      <div className="hidden lg:flex lg:flex-col lg:gap-2">
-        <p className="text-sm font-medium text-muted-foreground">Aperçu</p>
-        {previewUrl ? (
-          <iframe
-            title="Aperçu de la quittance"
-            src={previewUrl}
-            className="h-[500px] w-full rounded-2xl border border-border bg-white"
-          />
-        ) : (
-          <div className="flex h-[500px] items-center justify-center rounded-2xl border border-border bg-muted/30">
-            <p className="text-sm text-muted-foreground">
-              {isGenerating ? "Génération de l'aperçu…" : "L'aperçu apparaîtra ici."}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export function TenantQuittancesView({
   profile,
   tenant,
@@ -223,8 +60,27 @@ export function TenantQuittancesView({
   const [editingQuittance, setEditingQuittance] =
     useState<QuittanceRecord | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState<string | undefined>()
   const { download } = useQuittancePdf()
   const currentRate = effectiveRateAt(tenant, monthFromDate(todayIsoDate()))
+
+  const missingMonths = useMemo(() => {
+    if (!tenant.firstQuittanceDate) return []
+    const currentMonth = monthFromDate(todayIsoDate())
+    const startMonth = monthFromDate(tenant.firstQuittanceDate)
+    const endMonth = tenant.lastQuittanceDate
+      ? monthFromDate(tenant.lastQuittanceDate)
+      : currentMonth
+    const expected = monthsBetweenInclusive(startMonth, endMonth > currentMonth ? currentMonth : endMonth)
+    const existing = new Set(quittances.map((q) => q.periodMonth))
+    return expected.filter((m) => !existing.has(m))
+  }, [tenant, quittances])
+
+  function openGenerateDialog(month?: string) {
+    setSelectedMonth(month)
+    setDialogOpen(true)
+  }
 
   async function handleDownload(quittance: QuittanceRecord) {
     if (!quittance.paymentDate) return
@@ -235,7 +91,6 @@ export function TenantQuittancesView({
       quittance.periodMonth,
     )
     if (!fields) return
-
     setDownloadingId(quittance.id)
     try {
       await download(fields)
@@ -279,7 +134,6 @@ export function TenantQuittancesView({
     ) {
       return
     }
-
     setDeletingId(quittance.id)
     try {
       const response = await fetch(`/api/quittances/${quittance.id}`, {
@@ -303,7 +157,6 @@ export function TenantQuittancesView({
             ← Retour aux locataires
           </Link>
         )}
-
         <div className="flex items-center gap-3">
           <TenantAvatar seed={tenant.avatarSeed} name={tenant.name} size="lg" />
           <div>
@@ -332,7 +185,14 @@ export function TenantQuittancesView({
       ) : (
         <Tabs defaultValue="generer">
           <TabsList>
-            <TabsTab value="generer">À générer</TabsTab>
+            <TabsTab value="generer">
+              À générer
+              {missingMonths.length > 0 ? (
+                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-xs">
+                  {missingMonths.length}
+                </span>
+              ) : null}
+            </TabsTab>
             <TabsTab value="generees">
               Générées
               {quittances.length > 0 ? (
@@ -344,10 +204,10 @@ export function TenantQuittancesView({
           </TabsList>
 
           <TabsPanel value="generer">
-            <GenerationForm
-              profile={profile}
+            <MissingMonthsList
               tenant={tenant}
-              onLogged={refreshQuittances}
+              missingMonths={missingMonths}
+              onGenerate={openGenerateDialog}
             />
           </TabsPanel>
 
@@ -365,6 +225,16 @@ export function TenantQuittancesView({
         </Tabs>
       )}
 
+      <QuittanceDialog
+        key={`${tenant.id}-${selectedMonth ?? "open"}-${dialogOpen}`}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        profile={profile}
+        tenant={tenant}
+        initialPeriodMonth={selectedMonth}
+        onLogged={refreshQuittances}
+      />
+
       {!readOnly && editingQuittance ? (
         <EditQuittanceDialog
           key={editingQuittance.id}
@@ -377,6 +247,68 @@ export function TenantQuittancesView({
         />
       ) : null}
     </div>
+  )
+}
+
+type MissingMonthsListProps = {
+  tenant: Tenant
+  missingMonths: string[]
+  onGenerate: (month: string) => void
+}
+
+function MissingMonthsList({
+  tenant,
+  missingMonths,
+  onGenerate,
+}: MissingMonthsListProps) {
+  if (!tenant.firstQuittanceDate) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Aucune date de première quittance renseignée.
+      </p>
+    )
+  }
+
+  if (missingMonths.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Toutes les quittances sont à jour.
+      </p>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Quittances manquantes</CardTitle>
+        <CardDescription>
+          {missingMonths.length} quittance
+          {missingMonths.length > 1 ? "s" : ""} à générer.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="divide-y divide-border">
+          {missingMonths.map((month) => (
+            <li
+              key={month}
+              className="flex items-center justify-between py-2 first:pt-0 last:pb-0"
+            >
+              <span className="text-sm capitalize">
+                {periodFromMonth(month)?.label ?? month}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onGenerate(month)}
+              >
+                Générer
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   )
 }
 
