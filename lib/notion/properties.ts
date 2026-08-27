@@ -53,6 +53,16 @@ export function richTextProperty(value: string): NotionPropertyValue {
   return { rich_text: value ? [{ text: { content: value } }] : [] }
 }
 
+export function richTextChunkedProperty(value: string): NotionPropertyValue {
+  if (!value) return { rich_text: [] }
+  const CHUNK = 2000
+  const chunks: { text: { content: string } }[] = []
+  for (let i = 0; i < value.length; i += CHUNK) {
+    chunks.push({ text: { content: value.slice(i, i + CHUNK) } })
+  }
+  return { rich_text: chunks }
+}
+
 export function emailProperty(value: string | null): NotionPropertyValue {
   return { email: value || null }
 }

@@ -2,6 +2,7 @@ import { getPage, queryDataSource, updatePage } from "./client"
 import {
   getRichText,
   getTitle,
+  richTextChunkedProperty,
   richTextProperty,
   titleProperty,
 } from "./properties"
@@ -97,6 +98,7 @@ export type ProfileUpdateInput = Partial<{
   sciAddress: string[]
   propertyShortAddress: string
   propertyLines: string[]
+  signatureSrc: string
 }>
 
 export async function updateProfile(
@@ -133,6 +135,10 @@ export async function updateProfile(
     properties["Adresse bien (lignes)"] = richTextProperty(
       updates.propertyLines.join("\n"),
     )
+  }
+
+  if (updates.signatureSrc !== undefined) {
+    properties["Signature (chemin)"] = richTextChunkedProperty(updates.signatureSrc)
   }
 
   const page = await updatePage(pageId, { properties })
