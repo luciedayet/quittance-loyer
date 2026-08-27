@@ -55,8 +55,10 @@ export function QuittanceDialog({
   const [issueDate, setIssueDate] = useState(() =>
     defaultIssueDate(hasInitialPeriod ? initialPeriodMonth : monthFromDate(todayIsoDate())),
   )
-  const { previewUrl, isGenerating, error, generate, download, revokePreview } =
+  const { previewUrl, isGenerating, error: previewError, generate, revokePreview } =
     useQuittancePdf()
+  const [isLogging, setIsLogging] = useState(false)
+  const [logError, setLogError] = useState<string | null>(null)
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) revokePreview()
@@ -78,22 +80,29 @@ export function QuittanceDialog({
 
   async function handleGenerate() {
     if (!fields) return
-    await download(fields)
-
-    fetch("/api/quittances", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: buildQuittanceFilename(fields),
-        profileId: profile.id,
-        tenantId: fields.tenant.id,
-        periodMonth,
-        paymentDate,
-        totalAmount: fields.totalAmount,
-      }),
-    })
-      .then(() => onLogged?.())
-      .catch(() => {})
+    setIsLogging(true)
+    setLogError(null)
+    try {
+      const response = await fetch("/api/quittances", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: buildQuittanceFilename(fields),
+          profileId: profile.id,
+          tenantId: fields.tenant.id,
+          periodMonth,
+          paymentDate,
+          totalAmount: fields.totalAmount,
+        }),
+      })
+      if (!response.ok) throw new Error("Erreur lors de l'enregistrement.")
+      onLogged?.()
+      handleOpenChange(false)
+    } catch (cause) {
+      setLogError(cause instanceof Error ? cause.message : "Erreur lors de l'enregistrement.")
+    } finally {
+      setIsLogging(false)
+    }
   }
 
   return (
@@ -185,15 +194,16 @@ export function QuittanceDialog({
               </div>
             ) : null}
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {previewError ? <p className="text-sm text-destructive">{previewError}</p> : null}
+            {logError ? <p className="text-sm text-destructive">{logError}</p> : null}
 
             <DialogFooter>
               <Button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isGenerating || !fields}
+                disabled={isGenerating || isLogging || !fields}
               >
-                Générer la quittance
+                {isLogging ? "Enregistrement…" : "Générer la quittance"}
               </Button>
             </DialogFooter>
           </div>
