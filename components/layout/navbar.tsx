@@ -1,7 +1,7 @@
 "use client"
 
 import { HugeiconsIcon } from "@hugeicons/react"
-import { UserSettings01Icon } from "@hugeicons/core-free-icons"
+import { UserGroupIcon, UserSettings01Icon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 
@@ -49,6 +49,15 @@ export function Navbar({
           </Link>
         )}
         <div className="flex items-center gap-1">
+          {role === "admin" && !impersonating ? (
+            <Link
+              href="/admin"
+              className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
+            >
+              <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} />
+              <span className="sr-only">Administration</span>
+            </Link>
+          ) : null}
           {role === "admin" && !impersonating ? <ImpersonateDialog /> : null}
           {canEditProfile ? (
             <Link

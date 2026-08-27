@@ -2,6 +2,7 @@ import {
   archivePage,
   createPage,
   getPage,
+  queryAllPages,
   queryDataSource,
   updatePage,
 } from "./client"
@@ -191,6 +192,19 @@ export async function updateTenant(
 
   const page = await updatePage(tenantId, { properties })
   return mapPageToTenant(page)
+}
+
+export type AdminTenant = Tenant & { profilePageId: string | null }
+
+export async function listAllTenants(): Promise<AdminTenant[]> {
+  const dataSourceId = requireDataSourceId()
+  const pages = await queryAllPages(dataSourceId, {
+    sorts: [{ property: "Nom", direction: "ascending" }],
+  })
+  return pages.map((page) => ({
+    ...mapPageToTenant(page),
+    profilePageId: getRelationIds(page.properties["Bailleur"])[0] ?? null,
+  }))
 }
 
 export async function removeTenant(tenantId: string): Promise<void> {

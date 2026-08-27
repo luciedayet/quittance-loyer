@@ -1,4 +1,4 @@
-import { getPage, queryAllPages, queryDataSource, updatePage } from "./client"
+import { archivePage, createPage, getPage, queryAllPages, queryDataSource, updatePage } from "./client"
 import {
   getRichText,
   getTitle,
@@ -89,6 +89,37 @@ export async function getProfilePageId(
   })
 
   return response.results[0]?.id
+}
+
+function generateSlug(sciName: string): string {
+  const base = sciName
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40)
+  return `${base}-${Date.now().toString(36)}`
+}
+
+export async function createProfile(sciName: string): Promise<Profile> {
+  const dataSourceId = requireDataSourceId()
+  const slug = generateSlug(sciName)
+
+  const page = await createPage({
+    parent: { type: "data_source_id", data_source_id: dataSourceId },
+    properties: {
+      "Nom SCI": titleProperty(sciName),
+      Slug: richTextProperty(slug),
+    },
+  })
+  return mapPageToProfile(page)
+}
+
+export async function removeProfile(profileId: string): Promise<void> {
+  const pageId = await getProfilePageId(profileId)
+  if (!pageId) throw new Error("SCI introuvable.")
+  await archivePage(pageId)
 }
 
 /** Retourne un Map de pageId Notion → nom de la SCI, pour l'affichage admin. */
