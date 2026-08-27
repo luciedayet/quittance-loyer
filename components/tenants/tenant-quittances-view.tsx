@@ -57,12 +57,13 @@ export function TenantQuittancesView({
 }: TenantQuittancesViewProps) {
   const [quittances, setQuittances] = useState(initialQuittances)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [viewingId, setViewingId] = useState<string | null>(null)
   const [editingQuittance, setEditingQuittance] =
     useState<QuittanceRecord | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState<string | undefined>()
-  const { download } = useQuittancePdf()
+  const { download, generate } = useQuittancePdf()
   const currentRate = effectiveRateAt(tenant, monthFromDate(todayIsoDate()))
 
   const missingMonths = useMemo(() => {
@@ -80,6 +81,27 @@ export function TenantQuittancesView({
   function openGenerateDialog(month?: string) {
     setSelectedMonth(month)
     setDialogOpen(true)
+  }
+
+  async function handleView(quittance: QuittanceRecord) {
+    if (!quittance.paymentDate) return
+    const fields = buildQuittanceFields(
+      profile,
+      tenant,
+      quittance.paymentDate,
+      quittance.periodMonth,
+    )
+    if (!fields) return
+    setViewingId(quittance.id)
+    try {
+      const blob = await generate(fields)
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      window.open(url, "_blank")
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } finally {
+      setViewingId(null)
+    }
   }
 
   async function handleDownload(quittance: QuittanceRecord) {
@@ -177,7 +199,9 @@ export function TenantQuittancesView({
           quittances={quittances}
           readOnly
           downloadingId={downloadingId}
+          viewingId={viewingId}
           deletingId={deletingId}
+          onView={handleView}
           onDownload={handleDownload}
           onEdit={setEditingQuittance}
           onDelete={handleDeleteQuittance}
@@ -216,7 +240,9 @@ export function TenantQuittancesView({
               quittances={quittances}
               readOnly={false}
               downloadingId={downloadingId}
+              viewingId={viewingId}
               deletingId={deletingId}
+              onView={handleView}
               onDownload={handleDownload}
               onEdit={setEditingQuittance}
               onDelete={handleDeleteQuittance}
@@ -316,7 +342,9 @@ type QuittancesListCardProps = {
   quittances: QuittanceRecord[]
   readOnly: boolean
   downloadingId: string | null
+  viewingId: string | null
   deletingId: string | null
+  onView: (quittance: QuittanceRecord) => void
   onDownload: (quittance: QuittanceRecord) => void
   onEdit: (quittance: QuittanceRecord) => void
   onDelete: (quittance: QuittanceRecord) => void
@@ -326,7 +354,9 @@ function QuittancesListCard({
   quittances,
   readOnly,
   downloadingId,
+  viewingId,
   deletingId,
+  onView,
   onDownload,
   onEdit,
   onDelete,
@@ -364,6 +394,17 @@ function QuittancesListCard({
                   <p className="font-medium">
                     {formatEuros(quittance.totalAmount)} €
                   </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={
+                      !quittance.paymentDate || viewingId === quittance.id
+                    }
+                    onClick={() => onView(quittance)}
+                  >
+                    {viewingId === quittance.id ? "Génération…" : "Voir"}
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
