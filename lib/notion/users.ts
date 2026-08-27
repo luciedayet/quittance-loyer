@@ -1,4 +1,4 @@
-import { queryDataSource, updatePage } from "./client"
+import { queryAllPages, queryDataSource, updatePage } from "./client"
 import {
   getRelationIds,
   getRichText,
@@ -64,6 +64,14 @@ export async function getUserByEmail(
 
   const page = response.results[0]
   return page ? mapPageToUser(page) : undefined
+}
+
+export async function getAllUsers(): Promise<NotionUser[]> {
+  const dataSourceId = requireDataSourceId()
+  const pages = await queryAllPages(dataSourceId, {
+    sorts: [{ property: "Email", direction: "ascending" }],
+  })
+  return pages.map(mapPageToUser)
 }
 
 export async function activateUser(

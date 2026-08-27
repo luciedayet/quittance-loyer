@@ -200,6 +200,17 @@ export function QuittanceDialog({
             <DialogFooter>
               <Button
                 type="button"
+                variant="outline"
+                className="sm:hidden"
+                disabled={isGenerating || !previewUrl}
+                onClick={() => {
+                  if (previewUrl) window.open(previewUrl, "_blank")
+                }}
+              >
+                {isGenerating ? "Génération…" : "Aperçu"}
+              </Button>
+              <Button
+                type="button"
                 onClick={handleGenerate}
                 disabled={isGenerating || isLogging || !fields}
               >

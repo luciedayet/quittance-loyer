@@ -1,4 +1,4 @@
-import { getPage, queryDataSource, updatePage } from "./client"
+import { getPage, queryAllPages, queryDataSource, updatePage } from "./client"
 import {
   getRichText,
   getTitle,
@@ -89,6 +89,18 @@ export async function getProfilePageId(
   })
 
   return response.results[0]?.id
+}
+
+/** Retourne un Map de pageId Notion → nom de la SCI, pour l'affichage admin. */
+export async function getProfileSciNameByPageId(): Promise<Map<string, string>> {
+  const dataSourceId = requireDataSourceId()
+  const pages = await queryAllPages(dataSourceId)
+  const map = new Map<string, string>()
+  for (const page of pages) {
+    const sciName = getTitle(page.properties["Nom SCI"])
+    map.set(page.id, sciName)
+  }
+  return map
 }
 
 export type ProfileUpdateInput = Partial<{
