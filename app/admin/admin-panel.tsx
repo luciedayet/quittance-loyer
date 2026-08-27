@@ -4,13 +4,124 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Delete02Icon } from "@hugeicons/core-free-icons"
 import type { Profile } from "@/lib/profiles"
 import type { AdminTenant } from "@/lib/notion/tenants"
 import type { NotionUser } from "@/lib/notion/users"
 
-// ─── Copy email button ────────────────────────────────────────────────────────
+// ─── Email template helper ────────────────────────────────────────────────────
+
+function buildEmailTemplate({
+  email,
+  firstName,
+  activationCode,
+  tenant,
+}: {
+  email: string
+  firstName?: string
+  activationCode: string
+  tenant?: boolean
+}): string {
+  const appUrl = window.location.origin
+  const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,"
+  if (tenant) {
+    return [
+      greeting,
+      "",
+      "Vous avez été invité(e) à accéder à votre espace locataire.",
+      "",
+      `Rendez-vous sur : ${appUrl}/activation`,
+      "",
+      "Renseignez ces informations :",
+      `• Email : ${email}`,
+      `• Code de vérification : ${activationCode}`,
+      "",
+      "Vous pourrez ensuite définir votre mot de passe.",
+    ].join("\n")
+  }
+  return [
+    greeting,
+    "",
+    "Votre compte a été créé.",
+    "",
+    `Rendez-vous sur : ${appUrl}/activation`,
+    "",
+    "Renseignez ces informations :",
+    `• Email : ${email}`,
+    `• Code d'activation : ${activationCode}`,
+    "",
+    "Vous pourrez ensuite définir votre mot de passe.",
+  ].join("\n")
+}
+
+// ─── Email modal ──────────────────────────────────────────────────────────────
+
+function EmailModal({
+  open,
+  onClose,
+  email,
+  firstName,
+  activationCode,
+  tenant,
+}: {
+  open: boolean
+  onClose: () => void
+  email: string
+  firstName?: string
+  activationCode: string
+  tenant?: boolean
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const template = open
+    ? buildEmailTemplate({ email, firstName, activationCode, tenant })
+    : ""
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(template)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  function handleMailto() {
+    const subject = tenant ? "Votre accès locataire" : "Votre accès bailleur"
+    const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(template)}`
+    window.open(mailtoUrl, "_blank")
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Modèle d&apos;invitation</DialogTitle>
+        </DialogHeader>
+        <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed text-foreground">
+          {template}
+        </pre>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={handleCopy}>
+            {copied ? "Copié !" : "Copier le texte"}
+          </Button>
+          <Button type="button" onClick={handleMailto}>
+            Utiliser ma boite mail
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Copy email button (locataires tab) ───────────────────────────────────────
 
 function CopyEmailButton({
   email,
@@ -25,41 +136,9 @@ function CopyEmailButton({
 }) {
   const [copied, setCopied] = useState(false)
 
-  function buildTemplate() {
-    const appUrl = window.location.origin
-    const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,"
-    if (tenant) {
-      return [
-        greeting,
-        "",
-        "Vous avez été invité(e) à accéder à votre espace locataire.",
-        "",
-        `Rendez-vous sur : ${appUrl}/activation`,
-        "",
-        "Renseignez ces informations :",
-        `• Email : ${email}`,
-        `• Code de vérification : ${activationCode}`,
-        "",
-        "Vous pourrez ensuite définir votre mot de passe.",
-      ].join("\n")
-    }
-    return [
-      greeting,
-      "",
-      "Votre compte Quittances de loyer a été créé.",
-      "",
-      `Rendez-vous sur : ${appUrl}/activation`,
-      "",
-      "Renseignez ces informations :",
-      `• Email : ${email}`,
-      `• Code d'activation : ${activationCode}`,
-      "",
-      "Vous pourrez ensuite définir votre mot de passe.",
-    ].join("\n")
-  }
-
   async function handleCopy() {
-    await navigator.clipboard.writeText(buildTemplate())
+    const template = buildEmailTemplate({ email, firstName, activationCode, tenant })
+    await navigator.clipboard.writeText(template)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -171,7 +250,7 @@ function TenantInviteRow({
   )
 }
 
-// ─── SCI actions ──────────────────────────────────────────────────────────────
+// ─── SCI create form ──────────────────────────────────────────────────────────
 
 function CreateSciForm({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false)
@@ -237,6 +316,8 @@ function CreateSciForm({ onCreated }: { onCreated: () => void }) {
   )
 }
 
+// ─── SCI delete button ────────────────────────────────────────────────────────
+
 function DeleteSciButton({
   profileId,
   sciName,
@@ -272,26 +353,22 @@ function DeleteSciButton({
 
   if (disabled) {
     return (
-      <span
-        className="cursor-not-allowed text-xs text-muted-foreground"
-        title={disabledReason}
-      >
-        Supprimer
+      <span title={disabledReason} className="inline-flex cursor-not-allowed opacity-30">
+        <HugeiconsIcon icon={Delete02Icon} size={16} strokeWidth={2} />
       </span>
     )
   }
 
   if (!confirm) {
     return (
-      <Button
+      <button
         type="button"
-        variant="ghost"
-        size="sm"
-        className="text-destructive hover:text-destructive"
+        title={`Supprimer ${sciName}`}
+        className="inline-flex text-destructive opacity-70 hover:opacity-100 transition-opacity"
         onClick={() => setConfirm(true)}
       >
-        Supprimer
-      </Button>
+        <HugeiconsIcon icon={Delete02Icon} size={16} strokeWidth={2} />
+      </button>
     )
   }
 
@@ -326,21 +403,21 @@ function SciInviteRow({
   existingBailleur: NotionUser | undefined
   onInvited: () => void
 }) {
-  const [open, setOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fresh, setFresh] = useState<{ email: string; activationCode: string } | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
 
-  const result = fresh ?? (
+  const pendingResult = fresh ?? (
     existingBailleur && !existingBailleur.passwordHash && existingBailleur.activationCode
       ? { email: existingBailleur.email, activationCode: existingBailleur.activationCode }
       : null
   )
 
-  async function handleCreate() {
+  async function handleGenerate() {
     setLoading(true)
     setError(null)
     try {
@@ -352,7 +429,9 @@ function SciInviteRow({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Erreur")
       setFresh({ email: data.email, activationCode: data.activationCode })
-      setOpen(false)
+      setEmail("")
+      setFirstName("")
+      setLastName("")
       onInvited()
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur")
@@ -363,7 +442,7 @@ function SciInviteRow({
 
   if (existingBailleur?.passwordHash) {
     return (
-      <div>
+      <div className="flex flex-col gap-0.5">
         <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
           <span className="size-1.5 rounded-full bg-current" />
           Inscrit
@@ -373,33 +452,37 @@ function SciInviteRow({
     )
   }
 
-  if (result && !open) {
+  if (pendingResult) {
     return (
-      <div className="flex flex-wrap items-center gap-2">
-        <div>
-          <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-            <span className="size-1.5 rounded-full bg-current" />
-            En attente
-          </span>
-          <span className="text-xs text-muted-foreground">{result.email}</span>
+      <>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-0.5">
+            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+              <span className="size-1.5 rounded-full bg-current" />
+              En attente
+            </span>
+            <span className="text-xs text-muted-foreground">{pendingResult.email}</span>
+          </div>
+          <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs tracking-wider">
+            {pendingResult.activationCode}
+          </code>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setModalOpen(true)}
+          >
+            Envoyer par email
+          </Button>
         </div>
-        <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs tracking-wider">
-          {result.activationCode}
-        </code>
-        <CopyEmailButton
-          email={result.email}
+        <EmailModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          email={pendingResult.email}
           firstName={existingBailleur?.firstName}
-          activationCode={result.activationCode}
+          activationCode={pendingResult.activationCode}
         />
-      </div>
-    )
-  }
-
-  if (!open) {
-    return (
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
-        Inviter le bailleur
-      </Button>
+      </>
     )
   }
 
@@ -407,40 +490,34 @@ function SciInviteRow({
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          autoFocus
           type="email"
           placeholder="email@exemple.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="h-8 w-48 text-sm"
+          className="h-8 w-44 text-sm"
         />
         <Input
           placeholder="Prénom"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
-          className="h-8 w-28 text-sm"
+          className="h-8 w-24 text-sm"
         />
         <Input
           placeholder="Nom"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
-          className="h-8 w-28 text-sm"
+          className="h-8 w-24 text-sm"
         />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           size="sm"
           disabled={loading || !email}
-          onClick={handleCreate}
+          onClick={handleGenerate}
         >
-          {loading ? "Création…" : "Créer le compte"}
+          {loading ? "Génération…" : "Générer le code d'activation"}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
-          Annuler
-        </Button>
-        {error ? <span className="text-xs text-destructive">{error}</span> : null}
       </div>
+      {error ? <span className="text-xs text-destructive">{error}</span> : null}
     </div>
   )
 }
@@ -448,7 +525,6 @@ function SciInviteRow({
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 type AdminPanelProps = {
-  users: NotionUser[]
   tenants: AdminTenant[]
   profiles: Profile[]
   sciByPageId: Record<string, string>
@@ -458,7 +534,6 @@ type AdminPanelProps = {
 }
 
 export function AdminPanel({
-  users,
   tenants,
   profiles,
   sciByPageId,
@@ -476,14 +551,8 @@ export function AdminPanel({
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
       <h1 className="font-heading text-2xl font-medium">Administration</h1>
 
-      <Tabs defaultValue="utilisateurs">
+      <Tabs defaultValue="locataires">
         <TabsList>
-          <TabsTab value="utilisateurs">
-            Utilisateurs
-            <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-              {users.length}
-            </span>
-          </TabsTab>
           <TabsTab value="locataires">
             Locataires
             <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
@@ -497,83 +566,6 @@ export function AdminPanel({
             </span>
           </TabsTab>
         </TabsList>
-
-        {/* ── Utilisateurs ── */}
-        <TabsPanel value="utilisateurs">
-          <div className="overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nom</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Rôle</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">SCI</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Statut</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Code / Email</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => {
-                  const isActivated = Boolean(user.passwordHash)
-                  const sciName = user.profilePageId
-                    ? (sciByPageId[user.profilePageId] ?? "–")
-                    : "–"
-                  return (
-                    <tr key={user.id} className="border-b border-border last:border-0 hover:bg-muted/20">
-                      <td className="px-4 py-3 font-medium">
-                        {[user.firstName, user.lastName].filter(Boolean).join(" ") || "–"}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
-                      <td className="px-4 py-3">
-                        <span className={
-                          user.role === "admin"
-                            ? "rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
-                            : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                        }>
-                          {user.role === "admin" ? "Admin" : "Bailleur"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {user.role === "bailleur" ? sciName : "–"}
-                      </td>
-                      <td className="px-4 py-3">
-                        {isActivated ? (
-                          <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                            <span className="size-1.5 rounded-full bg-current" />
-                            Inscrit
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                            <span className="size-1.5 rounded-full bg-current" />
-                            En attente
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {isActivated ? (
-                          <span className="text-muted-foreground">–</span>
-                        ) : user.activationCode ? (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs tracking-wider">
-                              {user.activationCode}
-                            </code>
-                            <CopyEmailButton
-                              email={user.email}
-                              firstName={user.firstName}
-                              activationCode={user.activationCode}
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">–</span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </TabsPanel>
 
         {/* ── Locataires ── */}
         <TabsPanel value="locataires">
@@ -625,10 +617,9 @@ export function AdminPanel({
                   <tr className="border-b border-border bg-muted/40">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nom SCI</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Gérant</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ville</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Locataires</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Compte bailleur</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Supprimer</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -642,9 +633,6 @@ export function AdminPanel({
                         <td className="px-4 py-3 font-medium">{profile.sciName}</td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {profile.managerName || "–"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {profile.city || "–"}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{count}</td>
                         <td className="px-4 py-3">

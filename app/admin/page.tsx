@@ -53,7 +53,6 @@ export default async function AdminUsersPage() {
 
   return (
     <AdminPanel
-      users={users}
       tenants={allTenants}
       profiles={profiles}
       sciByPageId={sciByPageId}
