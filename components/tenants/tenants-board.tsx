@@ -201,27 +201,44 @@ export function TenantsBoard({
         </TabsList>
 
         <TabsPanel value="locataires">
-          <div className="mb-4 flex items-center justify-end">
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setAddDialogOpen(true)}
-            >
-              + Ajouter un locataire
-            </Button>
-          </div>
           {!isLoaded ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, index) => (
                 <TenantSkeleton key={`skeleton-${index}`} />
               ))}
             </div>
+          ) : tenants.length === 0 ? (
+            <div className="flex flex-col items-center gap-4 py-16 text-center">
+              <div className="flex size-16 items-center justify-center rounded-full bg-muted text-3xl">
+                🏠
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium">Aucun locataire pour l&apos;instant</p>
+                <p className="text-sm text-muted-foreground">
+                  Ajoutez votre premier locataire pour commencer à générer des quittances.
+                </p>
+              </div>
+              <Button type="button" onClick={() => setAddDialogOpen(true)}>
+                + Ajouter un locataire
+              </Button>
+            </div>
           ) : (
-            <TenantGrid
-              profile={profile}
-              tenants={tenants}
-              currentMonth={currentMonth}
-            />
+            <>
+              <div className="mb-4 flex items-center justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setAddDialogOpen(true)}
+                >
+                  + Ajouter un locataire
+                </Button>
+              </div>
+              <TenantGrid
+                profile={profile}
+                tenants={tenants}
+                currentMonth={currentMonth}
+              />
+            </>
           )}
         </TabsPanel>
 

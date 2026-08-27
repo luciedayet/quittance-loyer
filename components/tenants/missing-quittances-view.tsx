@@ -119,8 +119,11 @@ export function MissingQuittancesView({
 
   const isLoaded = tenantsLoaded && quittancesLoaded
 
+  const noTenants = isLoaded && tenants.length === 0
+
   const nothingMissing =
     isLoaded &&
+    !noTenants &&
     missingByTenant.every(
       ({ missingMonths, hasStartDate }) =>
         hasStartDate && missingMonths.length === 0,
@@ -133,7 +136,7 @@ export function MissingQuittancesView({
   return (
     <div className="flex flex-col gap-4">
       {/* Toggle vue */}
-      {isLoaded && !nothingMissing ? (
+      {isLoaded && !nothingMissing && !noTenants ? (
         <div className="flex items-center gap-1 self-start rounded-2xl bg-muted p-1 text-sm">
           <button
             type="button"
@@ -162,6 +165,20 @@ export function MissingQuittancesView({
 
       {!isLoaded ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
+      ) : null}
+
+      {noTenants ? (
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-muted text-3xl">
+            📄
+          </div>
+          <div className="space-y-1">
+            <p className="font-medium">Aucune quittance à générer</p>
+            <p className="text-sm text-muted-foreground">
+              Commencez par ajouter un locataire dans l&apos;onglet <span className="font-medium text-foreground">Locataires</span>.
+            </p>
+          </div>
+        </div>
       ) : null}
 
       {nothingMissing ? (
