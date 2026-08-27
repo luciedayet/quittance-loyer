@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react"
 
+import Link from "next/link"
+
 import { Accordion } from "@/components/ui/accordion"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import { useProfileQuittances } from "@/hooks/use-profile-quittances"
@@ -32,6 +34,17 @@ type TenantMissing = {
 }
 
 type GroupBy = "tenant" | "month"
+
+function profileMissingFields(profile: Profile): string[] {
+  const missing: string[] = []
+  if (!profile.sciName.trim()) missing.push("Nom de la SCI")
+  if (!profile.managerName.trim()) missing.push("Nom du gérant")
+  if (!profile.city.trim()) missing.push("Ville")
+  if (profile.sciAddress.length === 0) missing.push("Adresse de la SCI")
+  if (profile.property.lines.length === 0) missing.push("Adresse du bien loué")
+  if (!profile.signatureSrc) missing.push("Signature")
+  return missing
+}
 
 function Badge({ count }: { count: number }) {
   return (
@@ -132,6 +145,38 @@ export function MissingQuittancesView({
   const activeMissingByTenant = missingByTenant.filter(
     ({ missingMonths, hasStartDate }) => !hasStartDate || missingMonths.length > 0,
   )
+
+  const missingProfileFields = profileMissingFields(profile)
+
+  if (missingProfileFields.length > 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-12 text-center">
+        <div className="flex size-16 items-center justify-center rounded-full bg-muted text-3xl">
+          ⚙️
+        </div>
+        <div className="space-y-1">
+          <p className="font-medium">Profil SCI incomplet</p>
+          <p className="text-sm text-muted-foreground">
+            Complétez votre profil SCI pour pouvoir générer des quittances.
+          </p>
+        </div>
+        <ul className="rounded-2xl border border-border bg-muted/40 px-5 py-3 text-left text-sm">
+          {missingProfileFields.map((field) => (
+            <li key={field} className="flex items-center gap-2 py-0.5 text-muted-foreground">
+              <span className="text-destructive">✗</span> {field} manquant
+              {field === "Signature" ? "e" : ""}
+            </li>
+          ))}
+        </ul>
+        <Link
+          href={`/${profile.id}/profile`}
+          className={cn(buttonVariants({ variant: "default" }))}
+        >
+          Compléter le profil
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4">
