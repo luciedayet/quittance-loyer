@@ -80,6 +80,7 @@ function mapPageToTenant(page: NotionPage): Tenant {
     verificationCode: getRichText(properties["Code de vérification"]) || null,
     hasAccount: Boolean(getRichText(properties["Mot de passe"])),
     rentHistory: parseRentHistory(getRichText(properties["Historique loyer"])),
+    location: getSelect(properties["Lieu"]) ?? null,
   }
 }
 
@@ -90,6 +91,7 @@ export type NewTenantInput = {
   chargesAmount: number
   firstQuittanceDate?: string | null
   lastQuittanceDate?: string | null
+  location?: string | null
 }
 
 export type TenantUpdateInput = Partial<NewTenantInput> & {
@@ -142,6 +144,7 @@ export async function createTenant(
       "Avatar seed": richTextProperty(avatarSeedFromName(input.name)),
       "Première quittance": dateProperty(input.firstQuittanceDate ?? null),
       "Dernière quittance": dateProperty(input.lastQuittanceDate ?? null),
+      ...(input.location ? { Lieu: selectProperty(input.location) } : {}),
     },
   })
 
@@ -179,6 +182,11 @@ export async function updateTenant(
     properties["Historique loyer"] = richTextProperty(
       JSON.stringify(updates.rentHistory),
     )
+  }
+  if (updates.location !== undefined) {
+    properties["Lieu"] = updates.location
+      ? selectProperty(updates.location)
+      : { select: null }
   }
 
   const page = await updatePage(tenantId, { properties })

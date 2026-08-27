@@ -32,12 +32,14 @@ type TenantUpdate = {
   chargesAmount: number
   firstQuittanceDate: string | null
   lastQuittanceDate: string | null
+  location: string | null
 }
 
 type EditTenantDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   tenant: Tenant | null
+  availableLocations: string[]
   onSubmit: (update: TenantUpdate) => Promise<void>
   /** Rafraîchit la liste après une invitation ou une augmentation. */
   onTenantChanged?: () => void
@@ -47,6 +49,7 @@ export function EditTenantDialog({
   open,
   onOpenChange,
   tenant,
+  availableLocations,
   onSubmit,
   onTenantChanged,
 }: EditTenantDialogProps) {
@@ -66,6 +69,7 @@ export function EditTenantDialog({
   const [lastQuittanceDate, setLastQuittanceDate] = useState(
     tenant?.lastQuittanceDate ?? "",
   )
+  const [location, setLocation] = useState(tenant?.location ?? "")
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [loadedTenantId, setLoadedTenantId] = useState<string | null>(null)
@@ -92,6 +96,7 @@ export function EditTenantDialog({
     setChargesAmount(String(tenant.chargesAmount))
     setFirstQuittanceDate(tenant.firstQuittanceDate ?? "")
     setLastQuittanceDate(tenant.lastQuittanceDate ?? "")
+    setLocation(tenant.location ?? "")
     setError(null)
     setEmail(tenant.email ?? "")
     setInviteCode(null)
@@ -233,6 +238,7 @@ export function EditTenantDialog({
         chargesAmount: charges,
         firstQuittanceDate: firstQuittanceDate || null,
         lastQuittanceDate: lastQuittanceDate || null,
+        location: location.trim() || null,
       })
       onOpenChange(false)
     } catch (cause) {
@@ -309,6 +315,22 @@ export function EditTenantDialog({
                   placeholder="50,00"
                 />
               </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-tenant-location">Lieu</Label>
+              <Input
+                id="edit-tenant-location"
+                list="edit-tenant-location-options"
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+                placeholder="ex. Paris 11e"
+              />
+              <datalist id="edit-tenant-location-options">
+                {availableLocations.map((loc) => (
+                  <option key={loc} value={loc} />
+                ))}
+              </datalist>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

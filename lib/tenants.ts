@@ -23,6 +23,7 @@ export type Tenant = {
   verificationCode: string | null
   hasAccount: boolean
   rentHistory: RentChange[]
+  location: string | null
 }
 
 /** Loyer/charges applicables pour un mois, augmentations comprises. */

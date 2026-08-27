@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
     chargesAmount,
     firstQuittanceDate,
     lastQuittanceDate,
+    location,
   } = body ?? {}
 
   if (session.role === "locataire") return forbiddenResponse()
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
       chargesAmount,
       firstQuittanceDate: firstQuittanceDate ?? null,
       lastQuittanceDate: lastQuittanceDate ?? null,
+      location: typeof location === "string" && location.trim() ? location.trim() : null,
     })
     return NextResponse.json(tenant, { status: 201 })
   } catch (error) {

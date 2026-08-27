@@ -11,6 +11,7 @@ type NewTenantInput = {
   chargesAmount: number
   firstQuittanceDate?: string | null
   lastQuittanceDate?: string | null
+  location?: string | null
 }
 
 type TenantUpdateInput = Partial<NewTenantInput>

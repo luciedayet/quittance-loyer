@@ -49,6 +49,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     firstQuittanceDate,
     lastQuittanceDate,
     rentHistory,
+    location,
   } = body ?? {}
 
   const updates: Parameters<typeof updateTenant>[1] = {}
@@ -116,6 +117,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       )
     }
     updates.rentHistory = rentHistory
+  }
+
+  if (location !== undefined) {
+    if (location !== null && typeof location !== "string") {
+      return NextResponse.json({ error: "Lieu invalide." }, { status: 400 })
+    }
+    updates.location = typeof location === "string" && location.trim() ? location.trim() : null
   }
 
   try {

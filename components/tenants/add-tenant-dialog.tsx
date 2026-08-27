@@ -25,6 +25,7 @@ import type { TenantCivility } from "@/lib/tenants"
 type AddTenantDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  availableLocations: string[]
   onSubmit: (input: {
     civility: TenantCivility
     name: string
@@ -32,12 +33,14 @@ type AddTenantDialogProps = {
     chargesAmount: number
     firstQuittanceDate: string | null
     lastQuittanceDate: string | null
+    location: string | null
   }) => void
 }
 
 export function AddTenantDialog({
   open,
   onOpenChange,
+  availableLocations,
   onSubmit,
 }: AddTenantDialogProps) {
   const [civility, setCivility] = useState<TenantCivility>("M.")
@@ -46,6 +49,7 @@ export function AddTenantDialog({
   const [chargesAmount, setChargesAmount] = useState("")
   const [firstQuittanceDate, setFirstQuittanceDate] = useState("")
   const [lastQuittanceDate, setLastQuittanceDate] = useState("")
+  const [location, setLocation] = useState("")
   const [error, setError] = useState<string | null>(null)
 
   function resetForm() {
@@ -55,6 +59,7 @@ export function AddTenantDialog({
     setChargesAmount("")
     setFirstQuittanceDate("")
     setLastQuittanceDate("")
+    setLocation("")
     setError(null)
   }
 
@@ -86,6 +91,7 @@ export function AddTenantDialog({
       chargesAmount: charges,
       firstQuittanceDate: firstQuittanceDate || null,
       lastQuittanceDate: lastQuittanceDate || null,
+      location: location.trim() || null,
     })
     resetForm()
     onOpenChange(false)
@@ -157,6 +163,22 @@ export function AddTenantDialog({
                 placeholder="50,00"
               />
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="tenant-location">Lieu</Label>
+            <Input
+              id="tenant-location"
+              list="tenant-location-options"
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              placeholder="ex. Paris 11e"
+            />
+            <datalist id="tenant-location-options">
+              {availableLocations.map((loc) => (
+                <option key={loc} value={loc} />
+              ))}
+            </datalist>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

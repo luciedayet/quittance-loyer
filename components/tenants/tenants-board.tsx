@@ -91,6 +91,9 @@ function TenantCard({
               {formatEuros(rate.chargesAmount)})
             </span>
           </CardDescription>
+          {tenant.location ? (
+            <p className="text-xs text-muted-foreground">{tenant.location}</p>
+          ) : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           <div className="text-xs text-muted-foreground">
@@ -121,13 +124,11 @@ function TenantGrid({
   tenants,
   currentMonth,
   onEdit,
-  onAdd,
 }: {
   profile: Profile
   tenants: Tenant[]
   currentMonth: string
   onEdit: (tenant: Tenant) => void
-  onAdd: () => void
 }) {
   const today = todayIsoDate()
   const active = tenants.filter(
@@ -153,16 +154,6 @@ function TenantGrid({
               onEdit={onEdit}
             />
           ))}
-          <button type="button" className="text-left" onClick={onAdd}>
-            <Card className="flex h-full min-h-44 items-center justify-center border-dashed transition-colors hover:bg-muted/40">
-              <CardContent className="flex flex-col items-center gap-2 py-8 text-center">
-                <span className="text-3xl leading-none text-muted-foreground">
-                  +
-                </span>
-                <p className="font-medium">Ajouter un locataire</p>
-              </CardContent>
-            </Card>
-          </button>
         </div>
       </section>
 
@@ -212,10 +203,15 @@ export function TenantsBoard({
     chargesAmount: number
     firstQuittanceDate: string | null
     lastQuittanceDate: string | null
+    location: string | null
   }) {
     if (!editingTenant) return
     await updateTenant(editingTenant.id, update)
   }
+
+  const availableLocations = [
+    ...new Set(tenants.map((t) => t.location).filter(Boolean) as string[]),
+  ]
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
@@ -240,6 +236,15 @@ export function TenantsBoard({
         </TabsList>
 
         <TabsPanel value="locataires">
+          <div className="mb-4 flex items-center justify-end">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setAddDialogOpen(true)}
+            >
+              + Ajouter un locataire
+            </Button>
+          </div>
           {!isLoaded ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, index) => (
@@ -252,7 +257,6 @@ export function TenantsBoard({
               tenants={tenants}
               currentMonth={currentMonth}
               onEdit={openEditTenantDialog}
-              onAdd={() => setAddDialogOpen(true)}
             />
           )}
         </TabsPanel>
@@ -269,6 +273,7 @@ export function TenantsBoard({
       <AddTenantDialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
+        availableLocations={availableLocations}
         onSubmit={addTenant}
       />
 
@@ -276,6 +281,7 @@ export function TenantsBoard({
         open={editTenantDialogOpen}
         onOpenChange={setEditTenantDialogOpen}
         tenant={editingTenant}
+        availableLocations={availableLocations}
         onSubmit={handleTenantUpdate}
         onTenantChanged={refresh}
       />
