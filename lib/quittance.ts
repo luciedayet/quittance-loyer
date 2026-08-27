@@ -153,11 +153,17 @@ export function amountInWords(total: number): string {
   return toCurrency(total, { and: true })
 }
 
+export function defaultIssueDate(periodMonth: string): string {
+  const today = todayIsoDate()
+  return monthFromDate(today) === periodMonth ? today : `${periodMonth}-20`
+}
+
 export function buildQuittanceFields(
   profile: Profile,
   tenant: Tenant,
   paymentDate: string,
   periodMonth: string,
+  issueDate?: string,
 ): QuittanceFields | null {
   if (!isValidIsoDate(paymentDate) || !isValidPeriodMonth(periodMonth)) {
     return null
@@ -176,6 +182,11 @@ export function buildQuittanceFields(
     Number(dayPart),
   )
 
+  const issueDateStr =
+    issueDate && isValidIsoDate(issueDate) ? issueDate : todayIsoDate()
+  const [iy, im, id] = issueDateStr.split("-")
+  const issueDateObject = new Date(Number(iy), Number(im) - 1, Number(id))
+
   return {
     profile,
     tenant,
@@ -183,7 +194,7 @@ export function buildQuittanceFields(
     periodStart: period.start,
     periodEnd: period.end,
     paymentDateFormatted: formatDateFr(paymentDateObject),
-    issueDateFormatted: formatDateFr(new Date()),
+    issueDateFormatted: formatDateFr(issueDateObject),
     rentFormatted: formatEuros(rentAmount),
     chargesFormatted: formatEuros(chargesAmount),
     totalFormatted: formatEuros(totalAmount),

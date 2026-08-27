@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +17,7 @@ import { useQuittancePdf } from "@/components/pdf/use-quittance-pdf"
 import {
   buildQuittanceFields,
   buildQuittanceFilename,
+  defaultIssueDate,
   isValidIsoDate,
   isValidPeriodMonth,
   monthFromDate,
@@ -51,6 +52,9 @@ export function QuittanceDialog({
   const [periodMonth, setPeriodMonth] = useState(() =>
     hasInitialPeriod ? initialPeriodMonth : monthFromDate(todayIsoDate()),
   )
+  const [issueDate, setIssueDate] = useState(() =>
+    defaultIssueDate(hasInitialPeriod ? initialPeriodMonth : monthFromDate(todayIsoDate())),
+  )
   const { previewUrl, isGenerating, error, generate, download, revokePreview } =
     useQuittancePdf()
 
@@ -61,15 +65,18 @@ export function QuittanceDialog({
 
   const fields = useMemo(() => {
     if (!tenant) return null
-    return buildQuittanceFields(profile, tenant, paymentDate, periodMonth)
-  }, [paymentDate, periodMonth, profile, tenant])
+    return buildQuittanceFields(profile, tenant, paymentDate, periodMonth, issueDate)
+  }, [paymentDate, periodMonth, issueDate, profile, tenant])
 
-  async function handlePreview() {
+  useEffect(() => {
     if (!fields) return
-    await generate(fields)
-  }
+    const timer = setTimeout(() => {
+      generate(fields)
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [fields, generate])
 
-  async function handleDownload() {
+  async function handleGenerate() {
     if (!fields) return
     await download(fields)
 
@@ -86,9 +93,7 @@ export function QuittanceDialog({
       }),
     })
       .then(() => onLogged?.())
-      .catch(() => {
-        // Historique optionnel : une erreur ici ne doit pas bloquer le téléchargement.
-      })
+      .catch(() => {})
   }
 
   return (
@@ -105,29 +110,43 @@ export function QuittanceDialog({
 
         {tenant ? (
           <div className="grid gap-5">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="grid gap-2">
-                <Label htmlFor="payment-date">Date de paiement</Label>
+                <Label htmlFor="d-payment-date">Date de paiement</Label>
                 <Input
-                  id="payment-date"
+                  id="d-payment-date"
                   type="date"
                   value={paymentDate}
                   onChange={(event) => {
                     const nextDate = event.target.value
                     setPaymentDate(nextDate)
                     if (isValidIsoDate(nextDate)) {
-                      setPeriodMonth(monthFromDate(nextDate))
+                      const nextMonth = monthFromDate(nextDate)
+                      setPeriodMonth(nextMonth)
+                      setIssueDate(defaultIssueDate(nextMonth))
                     }
                   }}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="period-month">Mois concerné</Label>
+                <Label htmlFor="d-period-month">Mois concerné</Label>
                 <Input
-                  id="period-month"
+                  id="d-period-month"
                   type="month"
                   value={periodMonth}
-                  onChange={(event) => setPeriodMonth(event.target.value)}
+                  onChange={(event) => {
+                    setPeriodMonth(event.target.value)
+                    setIssueDate(defaultIssueDate(event.target.value))
+                  }}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="d-issue-date">Date de génération</Label>
+                <Input
+                  id="d-issue-date"
+                  type="date"
+                  value={issueDate}
+                  onChange={(event) => setIssueDate(event.target.value)}
                 />
               </div>
             </div>
@@ -158,28 +177,23 @@ export function QuittanceDialog({
               <iframe
                 title="Aperçu de la quittance"
                 src={previewUrl}
-                className="hidden h-[420px] w-full rounded-2xl border border-border bg-white sm:block"
+                className="hidden h-[360px] w-full rounded-2xl border border-border bg-white sm:block"
               />
+            ) : isGenerating ? (
+              <div className="hidden h-[360px] w-full items-center justify-center rounded-2xl border border-border bg-muted/30 sm:flex">
+                <p className="text-sm text-muted-foreground">Génération de l&apos;aperçu…</p>
+              </div>
             ) : null}
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-            <DialogFooter className="gap-2 sm:justify-between">
+            <DialogFooter>
               <Button
                 type="button"
-                variant="outline"
-                className="hidden sm:inline-flex"
-                onClick={handlePreview}
+                onClick={handleGenerate}
                 disabled={isGenerating || !fields}
               >
-                {isGenerating ? "Génération..." : "Aperçu"}
-              </Button>
-              <Button
-                type="button"
-                onClick={handleDownload}
-                disabled={isGenerating || !fields}
-              >
-                Télécharger le PDF
+                Générer la quittance
               </Button>
             </DialogFooter>
           </div>
