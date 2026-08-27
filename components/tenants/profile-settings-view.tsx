@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRef, useState } from "react"
+import { useState } from "react"
 
 import { LogoutButton } from "@/components/auth/logout-button"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { SignaturePad } from "@/components/ui/signature-pad"
 import { Textarea } from "@/components/ui/textarea"
 import type { Profile } from "@/lib/profiles"
 import { cn } from "@/lib/utils"
@@ -52,47 +53,14 @@ export function ProfileSettingsView({
   const [isSaving, setIsSaving] = useState(false)
 
   const [signatureSrc, setSignatureSrc] = useState(profile.signatureSrc)
-  const [isUploadingSignature, setIsUploadingSignature] = useState(false)
+  const [showPad, setShowPad] = useState(false)
+  const [isSavingSignature, setIsSavingSignature] = useState(false)
   const [signatureError, setSignatureError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  function compressSignature(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = (evt) => {
-        const img = document.createElement("img")
-        img.onload = () => {
-          const MAX_W = 360
-          const MAX_H = 120
-          let { width, height } = img
-          const ratio = Math.min(MAX_W / width, MAX_H / height, 1)
-          width = Math.round(width * ratio)
-          height = Math.round(height * ratio)
-          const canvas = document.createElement("canvas")
-          canvas.width = width
-          canvas.height = height
-          const ctx = canvas.getContext("2d")
-          if (!ctx) { reject(new Error("Canvas non disponible.")); return }
-          ctx.drawImage(img, 0, 0, width, height)
-          resolve(canvas.toDataURL("image/png"))
-        }
-        img.onerror = () => reject(new Error("Impossible de lire l'image."))
-        img.src = evt.target?.result as string
-      }
-      reader.onerror = () => reject(new Error("Impossible de lire le fichier."))
-      reader.readAsDataURL(file)
-    })
-  }
-
-  async function handleSignatureChange(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
-    const file = event.target.files?.[0]
-    if (!file) return
-    setIsUploadingSignature(true)
+  async function handleSaveSignature(dataUrl: string) {
+    setIsSavingSignature(true)
     setSignatureError(null)
     try {
-      const dataUrl = await compressSignature(file)
       const response = await fetch(`/api/profiles/${profile.id}/signature`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,21 +68,21 @@ export function ProfileSettingsView({
       })
       const data = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error(data?.error ?? "Erreur lors de l'envoi.")
+        throw new Error(data?.error ?? "Erreur lors de l'enregistrement.")
       }
       setSignatureSrc((data as typeof profile).signatureSrc)
+      setShowPad(false)
     } catch (cause) {
       setSignatureError(
-        cause instanceof Error ? cause.message : "Erreur lors de l'envoi.",
+        cause instanceof Error ? cause.message : "Erreur lors de l'enregistrement.",
       )
     } finally {
-      setIsUploadingSignature(false)
-      if (fileInputRef.current) fileInputRef.current.value = ""
+      setIsSavingSignature(false)
     }
   }
 
   async function handleRemoveSignature() {
-    setIsUploadingSignature(true)
+    setIsSavingSignature(true)
     setSignatureError(null)
     try {
       const response = await fetch(`/api/profiles/${profile.id}/signature`, {
@@ -122,12 +90,13 @@ export function ProfileSettingsView({
       })
       if (!response.ok) throw new Error("Erreur lors de la suppression.")
       setSignatureSrc(null)
+      setShowPad(false)
     } catch (cause) {
       setSignatureError(
         cause instanceof Error ? cause.message : "Erreur lors de la suppression.",
       )
     } finally {
-      setIsUploadingSignature(false)
+      setIsSavingSignature(false)
     }
   }
 
@@ -306,58 +275,63 @@ export function ProfileSettingsView({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {signatureSrc ? (
-            <div className="inline-block rounded-2xl border border-border bg-white p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={signatureSrc}
-                alt="Signature"
-                className="max-h-[80px] max-w-[300px] object-contain"
-              />
-            </div>
+          {!showPad ? (
+            <>
+              {signatureSrc ? (
+                <div className="inline-block rounded-2xl border border-border bg-white p-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={signatureSrc}
+                    alt="Signature"
+                    className="max-h-[80px] max-w-[300px] object-contain"
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Aucune signature enregistrée.
+                </p>
+              )}
+
+              {signatureError ? (
+                <p className="text-sm text-destructive">{signatureError}</p>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSignatureError(null)
+                    setShowPad(true)
+                  }}
+                >
+                  {signatureSrc ? "Redessiner la signature" : "Dessiner la signature"}
+                </Button>
+                {signatureSrc ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-destructive"
+                    disabled={isSavingSignature}
+                    onClick={handleRemoveSignature}
+                  >
+                    {isSavingSignature ? "Suppression…" : "Supprimer"}
+                  </Button>
+                ) : null}
+              </div>
+            </>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Aucune signature enregistrée.
-            </p>
+            <>
+              {signatureError ? (
+                <p className="text-sm text-destructive">{signatureError}</p>
+              ) : null}
+              <SignaturePad
+                onSave={handleSaveSignature}
+                onCancel={() => setShowPad(false)}
+                isSaving={isSavingSignature}
+              />
+            </>
           )}
-
-          {signatureError ? (
-            <p className="text-sm text-destructive">{signatureError}</p>
-          ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isUploadingSignature}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {isUploadingSignature
-                ? "Envoi…"
-                : signatureSrc
-                  ? "Remplacer la signature"
-                  : "Ajouter une signature"}
-            </Button>
-            {signatureSrc ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-destructive"
-                disabled={isUploadingSignature}
-                onClick={handleRemoveSignature}
-              >
-                Supprimer
-              </Button>
-            ) : null}
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handleSignatureChange}
-          />
         </CardContent>
       </Card>
 
