@@ -315,6 +315,136 @@ function DeleteSciButton({
   )
 }
 
+// ─── SCI invite row ──────────────────────────────────────────────────────────
+
+function SciInviteRow({
+  profileId,
+  existingBailleur,
+  onInvited,
+}: {
+  profileId: string
+  existingBailleur: NotionUser | undefined
+  onInvited: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fresh, setFresh] = useState<{ email: string; activationCode: string } | null>(null)
+
+  const result = fresh ?? (
+    existingBailleur && !existingBailleur.passwordHash && existingBailleur.activationCode
+      ? { email: existingBailleur.email, activationCode: existingBailleur.activationCode }
+      : null
+  )
+
+  async function handleCreate() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, firstName, lastName, profileId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Erreur")
+      setFresh({ email: data.email, activationCode: data.activationCode })
+      setOpen(false)
+      onInvited()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (existingBailleur?.passwordHash) {
+    return (
+      <div>
+        <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+          <span className="size-1.5 rounded-full bg-current" />
+          Inscrit
+        </span>
+        <span className="text-xs text-muted-foreground">{existingBailleur.email}</span>
+      </div>
+    )
+  }
+
+  if (result && !open) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <div>
+          <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <span className="size-1.5 rounded-full bg-current" />
+            En attente
+          </span>
+          <span className="text-xs text-muted-foreground">{result.email}</span>
+        </div>
+        <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs tracking-wider">
+          {result.activationCode}
+        </code>
+        <CopyEmailButton
+          email={result.email}
+          firstName={existingBailleur?.firstName}
+          activationCode={result.activationCode}
+        />
+      </div>
+    )
+  }
+
+  if (!open) {
+    return (
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+        Inviter le bailleur
+      </Button>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          autoFocus
+          type="email"
+          placeholder="email@exemple.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="h-8 w-48 text-sm"
+        />
+        <Input
+          placeholder="Prénom"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          className="h-8 w-28 text-sm"
+        />
+        <Input
+          placeholder="Nom"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          className="h-8 w-28 text-sm"
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          disabled={loading || !email}
+          onClick={handleCreate}
+        >
+          {loading ? "Création…" : "Créer le compte"}
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+          Annuler
+        </Button>
+        {error ? <span className="text-xs text-destructive">{error}</span> : null}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 type AdminPanelProps = {
@@ -323,6 +453,8 @@ type AdminPanelProps = {
   profiles: Profile[]
   sciByPageId: Record<string, string>
   tenantCountByProfileId: Record<string, number>
+  bailleurByProfilePageId: Record<string, NotionUser>
+  profilePageIdBySlug: Record<string, string>
 }
 
 export function AdminPanel({
@@ -331,6 +463,8 @@ export function AdminPanel({
   profiles,
   sciByPageId,
   tenantCountByProfileId,
+  bailleurByProfilePageId,
+  profilePageIdBySlug,
 }: AdminPanelProps) {
   const router = useRouter()
 
@@ -493,15 +627,18 @@ export function AdminPanel({
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Gérant</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ville</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Locataires</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Action</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Compte bailleur</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Supprimer</th>
                   </tr>
                 </thead>
                 <tbody>
                   {profiles.map((profile) => {
                     const count = tenantCountByProfileId[profile.id] ?? 0
                     const canDelete = count === 0
+                    const pageId = profilePageIdBySlug[profile.id]
+                    const bailleur = pageId ? bailleurByProfilePageId[pageId] : undefined
                     return (
-                      <tr key={profile.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <tr key={profile.id} className="border-b border-border last:border-0 hover:bg-muted/20 align-top">
                         <td className="px-4 py-3 font-medium">{profile.sciName}</td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {profile.managerName || "–"}
@@ -510,6 +647,13 @@ export function AdminPanel({
                           {profile.city || "–"}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{count}</td>
+                        <td className="px-4 py-3">
+                          <SciInviteRow
+                            profileId={profile.id}
+                            existingBailleur={bailleur}
+                            onInvited={refresh}
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           <DeleteSciButton
                             profileId={profile.id}

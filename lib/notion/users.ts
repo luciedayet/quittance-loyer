@@ -1,12 +1,16 @@
-import { queryAllPages, queryDataSource, updatePage } from "./client"
+import { createPage, queryAllPages, queryDataSource, updatePage } from "./client"
 import {
   getRelationIds,
   getRichText,
   getSelect,
   getTitle,
+  relationProperty,
   richTextProperty,
+  selectProperty,
+  titleProperty,
 } from "./properties"
 import type { NotionPage } from "./types"
+import { generateActivationCode } from "@/lib/auth/activation-code"
 
 function requireDataSourceId(): string {
   const dataSourceId = process.env.NOTION_UTILISATEURS_DATA_SOURCE_ID
@@ -72,6 +76,31 @@ export async function getAllUsers(): Promise<NotionUser[]> {
     sorts: [{ property: "Email", direction: "ascending" }],
   })
   return pages.map(mapPageToUser)
+}
+
+export async function createBailleurUser(
+  email: string,
+  firstName: string,
+  lastName: string,
+  profilePageId: string,
+): Promise<{ email: string; activationCode: string }> {
+  const dataSourceId = requireDataSourceId()
+  const activationCode = generateActivationCode()
+  const normalized = normalizeEmail(email)
+
+  await createPage({
+    parent: { type: "data_source_id", data_source_id: dataSourceId },
+    properties: {
+      Email: titleProperty(normalized),
+      Prénom: richTextProperty(firstName.trim()),
+      Nom: richTextProperty(lastName.trim()),
+      Rôle: selectProperty("Bailleur"),
+      Bailleur: relationProperty([profilePageId]),
+      "Code d'activation": richTextProperty(activationCode),
+    },
+  })
+
+  return { email: normalized, activationCode }
 }
 
 export async function activateUser(

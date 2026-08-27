@@ -134,6 +134,17 @@ export async function getProfileSciNameByPageId(): Promise<Map<string, string>> 
   return map
 }
 
+/** Retourne les profils avec leur page ID Notion (slug → pageId et pageId → sciName). */
+export async function getProfilesWithPageIds(): Promise<
+  Array<{ profile: Profile; pageId: string }>
+> {
+  const dataSourceId = requireDataSourceId()
+  const pages = await queryAllPages(dataSourceId, {
+    sorts: [{ property: "Nom SCI", direction: "ascending" }],
+  })
+  return pages.map((page) => ({ profile: mapPageToProfile(page), pageId: page.id }))
+}
+
 export type ProfileUpdateInput = Partial<{
   sciName: string
   managerName: string
