@@ -82,6 +82,123 @@ function MonthRow({
   )
 }
 
+function GroupByToggle({
+  groupBy,
+  onChange,
+}: {
+  groupBy: GroupBy
+  onChange: (groupBy: GroupBy) => void
+}) {
+  return (
+    <div className="flex items-center gap-1 self-start rounded-2xl bg-muted p-1 text-sm">
+      <button
+        type="button"
+        onClick={() => onChange("tenant")}
+        className={cn(
+          "rounded-xl px-3 py-1 font-medium text-muted-foreground transition-colors",
+          groupBy === "tenant" && "bg-background text-foreground shadow-sm"
+        )}
+      >
+        Par locataire
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("month")}
+        className={cn(
+          "rounded-xl px-3 py-1 font-medium text-muted-foreground transition-colors",
+          groupBy === "month" && "bg-background text-foreground shadow-sm"
+        )}
+      >
+        Par mois
+      </button>
+    </div>
+  )
+}
+
+function GeneratedQuittanceRow({
+  tenant,
+  quittance,
+  showTenant,
+  viewingId,
+  downloadingId,
+  deletingId,
+  onView,
+  onDownload,
+  onDelete,
+}: {
+  tenant: Tenant
+  quittance: QuittanceRecord
+  showTenant: boolean
+  viewingId: string | null
+  downloadingId: string | null
+  deletingId: string | null
+  onView: (tenant: Tenant, quittance: QuittanceRecord) => void
+  onDownload: (tenant: Tenant, quittance: QuittanceRecord) => void
+  onDelete: (quittance: QuittanceRecord) => void
+}) {
+  const periodLabel =
+    periodFromMonth(quittance.periodMonth)?.label ?? quittance.periodMonth
+  const paidLabel = quittance.paymentDate
+    ? formatIsoDate(quittance.paymentDate)
+    : "date inconnue"
+
+  return (
+    <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        {showTenant ? (
+          <TenantAvatar seed={tenant.avatarSeed} name={tenant.name} size="sm" />
+        ) : null}
+        <div>
+          <p className="text-sm font-medium capitalize">
+            {showTenant ? `${tenant.civility} ${tenant.name}` : periodLabel}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {showTenant
+              ? `${periodLabel} · Payée le ${paidLabel}`
+              : `Payée le ${paidLabel}`}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <p className="text-sm font-medium">
+          {formatEuros(quittance.totalAmount)} €
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!quittance.paymentDate || viewingId === quittance.id}
+          onClick={() => onView(tenant, quittance)}
+        >
+          {viewingId === quittance.id ? "Génération…" : "Voir"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!quittance.paymentDate || downloadingId === quittance.id}
+          onClick={() => onDownload(tenant, quittance)}
+        >
+          {downloadingId === quittance.id ? "Génération…" : "Télécharger"}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="bg-secondary text-destructive"
+          disabled={deletingId === quittance.id}
+          onClick={() => onDelete(quittance)}
+        >
+          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+          <span className="sr-only">
+            Supprimer la quittance de {periodLabel}
+          </span>
+        </Button>
+      </div>
+    </li>
+  )
+}
+
 export function MissingQuittancesView({
   profile,
   tenants,
@@ -93,6 +210,7 @@ export function MissingQuittancesView({
     refresh,
   } = useProfileQuittances(profile.id)
   const [groupBy, setGroupBy] = useState<GroupBy>("tenant")
+  const [generatedGroupBy, setGeneratedGroupBy] = useState<GroupBy>("tenant")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null)
   const [selectedMonth, setSelectedMonth] = useState<string | undefined>()
@@ -228,6 +346,24 @@ export function MissingQuittancesView({
       .filter(({ list }) => list.length > 0)
   }, [tenants, quittances])
 
+  const generatedByMonth = useMemo(() => {
+    const tenantsById = new Map(tenants.map((tenant) => [tenant.id, tenant]))
+    const map = new Map<
+      string,
+      { tenant: Tenant; quittance: QuittanceRecord }[]
+    >()
+    for (const quittance of quittances) {
+      const tenant = tenantsById.get(quittance.tenantId)
+      if (!tenant) continue
+      const list = map.get(quittance.periodMonth) ?? []
+      list.push({ tenant, quittance })
+      map.set(quittance.periodMonth, list)
+    }
+    return [...map.entries()]
+      .sort(([a], [b]) => (a > b ? -1 : 1))
+      .map(([month, list]) => ({ month, list }))
+  }, [tenants, quittances])
+
   const totalMissing = useMemo(
     () =>
       missingByTenant.reduce(
@@ -314,30 +450,7 @@ export function MissingQuittancesView({
         <TabsPanel value="generer" className="flex flex-col gap-4">
           {/* Toggle vue */}
           {isLoaded && !nothingMissing && !noTenants ? (
-            <div className="flex items-center gap-1 self-start rounded-2xl bg-muted p-1 text-sm">
-              <button
-                type="button"
-                onClick={() => setGroupBy("tenant")}
-                className={cn(
-                  "rounded-xl px-3 py-1 font-medium text-muted-foreground transition-colors",
-                  groupBy === "tenant" &&
-                    "bg-background text-foreground shadow-sm"
-                )}
-              >
-                Par locataire
-              </button>
-              <button
-                type="button"
-                onClick={() => setGroupBy("month")}
-                className={cn(
-                  "rounded-xl px-3 py-1 font-medium text-muted-foreground transition-colors",
-                  groupBy === "month" &&
-                    "bg-background text-foreground shadow-sm"
-                )}
-              >
-                Par mois
-              </button>
-            </div>
+            <GroupByToggle groupBy={groupBy} onChange={setGroupBy} />
           ) : null}
 
           {!isLoaded ? (
@@ -459,13 +572,20 @@ export function MissingQuittancesView({
         </TabsPanel>
 
         <TabsPanel value="generees" className="flex flex-col gap-4">
+          {isLoaded && generatedByTenant.length > 0 ? (
+            <GroupByToggle
+              groupBy={generatedGroupBy}
+              onChange={setGeneratedGroupBy}
+            />
+          ) : null}
+
           {!isLoaded ? (
             <p className="text-sm text-muted-foreground">Chargement…</p>
           ) : generatedByTenant.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Aucune quittance générée pour l&apos;instant.
             </p>
-          ) : (
+          ) : generatedGroupBy === "tenant" ? (
             generatedByTenant.map(({ tenant, list }) => (
               <Accordion
                 key={tenant.id}
@@ -486,68 +606,48 @@ export function MissingQuittancesView({
               >
                 <ul className="divide-y divide-border">
                   {list.map((quittance) => (
-                    <li
+                    <GeneratedQuittanceRow
                       key={quittance.id}
-                      className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="text-sm font-medium capitalize">
-                          {periodFromMonth(quittance.periodMonth)?.label ??
-                            quittance.periodMonth}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Payée le{" "}
-                          {quittance.paymentDate
-                            ? formatIsoDate(quittance.paymentDate)
-                            : "date inconnue"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">
-                          {formatEuros(quittance.totalAmount)} €
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={
-                            !quittance.paymentDate || viewingId === quittance.id
-                          }
-                          onClick={() => handleView(tenant, quittance)}
-                        >
-                          {viewingId === quittance.id ? "Génération…" : "Voir"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={
-                            !quittance.paymentDate ||
-                            downloadingId === quittance.id
-                          }
-                          onClick={() => handleDownload(tenant, quittance)}
-                        >
-                          {downloadingId === quittance.id
-                            ? "Génération…"
-                            : "Télécharger"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className="bg-secondary text-destructive"
-                          disabled={deletingId === quittance.id}
-                          onClick={() => handleDeleteQuittance(quittance)}
-                        >
-                          <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                          <span className="sr-only">
-                            Supprimer la quittance de{" "}
-                            {periodFromMonth(quittance.periodMonth)?.label ??
-                              quittance.periodMonth}
-                          </span>
-                        </Button>
-                      </div>
-                    </li>
+                      tenant={tenant}
+                      quittance={quittance}
+                      showTenant={false}
+                      viewingId={viewingId}
+                      downloadingId={downloadingId}
+                      deletingId={deletingId}
+                      onView={handleView}
+                      onDownload={handleDownload}
+                      onDelete={handleDeleteQuittance}
+                    />
+                  ))}
+                </ul>
+              </Accordion>
+            ))
+          ) : (
+            generatedByMonth.map(({ month, list }) => (
+              <Accordion
+                key={month}
+                defaultOpen
+                title={
+                  <span className="capitalize">
+                    {periodFromMonth(month)?.label ?? month}
+                  </span>
+                }
+                badge={<Badge count={list.length} />}
+              >
+                <ul className="divide-y divide-border">
+                  {list.map(({ tenant, quittance }) => (
+                    <GeneratedQuittanceRow
+                      key={quittance.id}
+                      tenant={tenant}
+                      quittance={quittance}
+                      showTenant
+                      viewingId={viewingId}
+                      downloadingId={downloadingId}
+                      deletingId={deletingId}
+                      onView={handleView}
+                      onDownload={handleDownload}
+                      onDelete={handleDeleteQuittance}
+                    />
                   ))}
                 </ul>
               </Accordion>
