@@ -6,6 +6,7 @@ import { ImpersonationBanner } from "@/components/layout/impersonation-banner"
 import { Navbar } from "@/components/layout/navbar"
 import { UpdateBanner } from "@/components/pwa/update-banner"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toast"
 import {
   getImpersonation,
   type ImpersonationPayload,
@@ -38,7 +39,7 @@ export const viewport: Viewport = {
 }
 
 async function getImpersonationLabel(
-  impersonation: ImpersonationPayload,
+  impersonation: ImpersonationPayload
 ): Promise<string> {
   const profile = await getProfileById(impersonation.profileId)
   const sciName = profile?.sciName ?? "SCI inconnue"
@@ -48,9 +49,7 @@ async function getImpersonationLabel(
   }
 
   const tenant = await getTenantById(impersonation.tenantId)
-  const tenantName = tenant
-    ? `${tenant.civility} ${tenant.name}`
-    : "locataire"
+  const tenantName = tenant ? `${tenant.civility} ${tenant.name}` : "locataire"
   return `Vue admin : tu navigues en tant que ${tenantName} (${sciName}).`
 }
 
@@ -93,6 +92,7 @@ export default async function RootLayout({
           ) : null}
           {children}
         </ThemeProvider>
+        <Toaster />
         <UpdateBanner />
       </body>
     </html>

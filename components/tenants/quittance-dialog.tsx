@@ -21,10 +21,12 @@ import {
   isValidIsoDate,
   isValidPeriodMonth,
   monthFromDate,
+  periodFromMonth,
   todayIsoDate,
 } from "@/lib/quittance"
 import type { Profile } from "@/lib/profiles"
 import type { Tenant } from "@/lib/tenants"
+import { toastManager } from "@/lib/toast-manager"
 
 type QuittanceDialogProps = {
   open: boolean
@@ -47,16 +49,23 @@ export function QuittanceDialog({
   const hasInitialPeriod =
     initialPeriodMonth !== undefined && isValidPeriodMonth(initialPeriodMonth)
   const [paymentDate, setPaymentDate] = useState(() =>
-    hasInitialPeriod ? `${initialPeriodMonth}-01` : todayIsoDate(),
+    hasInitialPeriod ? `${initialPeriodMonth}-01` : todayIsoDate()
   )
   const [periodMonth, setPeriodMonth] = useState(() =>
-    hasInitialPeriod ? initialPeriodMonth : monthFromDate(todayIsoDate()),
+    hasInitialPeriod ? initialPeriodMonth : monthFromDate(todayIsoDate())
   )
   const [issueDate, setIssueDate] = useState(() =>
-    defaultIssueDate(hasInitialPeriod ? initialPeriodMonth : monthFromDate(todayIsoDate())),
+    defaultIssueDate(
+      hasInitialPeriod ? initialPeriodMonth : monthFromDate(todayIsoDate())
+    )
   )
-  const { previewUrl, isGenerating, error: previewError, generate, revokePreview } =
-    useQuittancePdf()
+  const {
+    previewUrl,
+    isGenerating,
+    error: previewError,
+    generate,
+    revokePreview,
+  } = useQuittancePdf()
   const [isLogging, setIsLogging] = useState(false)
   const [logError, setLogError] = useState<string | null>(null)
 
@@ -67,7 +76,13 @@ export function QuittanceDialog({
 
   const fields = useMemo(() => {
     if (!tenant) return null
-    return buildQuittanceFields(profile, tenant, paymentDate, periodMonth, issueDate)
+    return buildQuittanceFields(
+      profile,
+      tenant,
+      paymentDate,
+      periodMonth,
+      issueDate
+    )
   }, [paymentDate, periodMonth, issueDate, profile, tenant])
 
   useEffect(() => {
@@ -98,8 +113,21 @@ export function QuittanceDialog({
       if (!response.ok) throw new Error("Erreur lors de l'enregistrement.")
       onLogged?.()
       handleOpenChange(false)
+      toastManager.add({
+        title: "Quittance générée",
+        description: tenant
+          ? `${tenant.civility} ${tenant.name} · ${
+              periodFromMonth(periodMonth)?.label ?? periodMonth
+            }`
+          : undefined,
+        type: "success",
+      })
     } catch (cause) {
-      setLogError(cause instanceof Error ? cause.message : "Erreur lors de l'enregistrement.")
+      setLogError(
+        cause instanceof Error
+          ? cause.message
+          : "Erreur lors de l'enregistrement."
+      )
     } finally {
       setIsLogging(false)
     }
@@ -172,8 +200,7 @@ export function QuittanceDialog({
                 </p>
                 <p>
                   <span className="font-medium">Détail :</span> loyer{" "}
-                  {fields.rentFormatted} € + charges{" "}
-                  {fields.chargesFormatted} €
+                  {fields.rentFormatted} € + charges {fields.chargesFormatted} €
                 </p>
               </div>
             ) : (
@@ -190,12 +217,18 @@ export function QuittanceDialog({
               />
             ) : isGenerating ? (
               <div className="hidden h-[360px] w-full items-center justify-center rounded-2xl border border-border bg-muted/30 sm:flex">
-                <p className="text-sm text-muted-foreground">Génération de l&apos;aperçu…</p>
+                <p className="text-sm text-muted-foreground">
+                  Génération de l&apos;aperçu…
+                </p>
               </div>
             ) : null}
 
-            {previewError ? <p className="text-sm text-destructive">{previewError}</p> : null}
-            {logError ? <p className="text-sm text-destructive">{logError}</p> : null}
+            {previewError ? (
+              <p className="text-sm text-destructive">{previewError}</p>
+            ) : null}
+            {logError ? (
+              <p className="text-sm text-destructive">{logError}</p>
+            ) : null}
 
             <DialogFooter>
               <Button

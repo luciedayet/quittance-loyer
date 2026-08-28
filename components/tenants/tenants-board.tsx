@@ -8,6 +8,7 @@ import { useState } from "react"
 import { AddTenantDialog } from "@/components/tenants/add-tenant-dialog"
 import { MissingQuittancesView } from "@/components/tenants/missing-quittances-view"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
+import { TenantsAccessView } from "@/components/tenants/tenants-access-view"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Card,
@@ -66,7 +67,7 @@ function TenantCard({
           href={`/${profile.id}/tenants/${tenant.id}/edit`}
           className={cn(
             buttonVariants({ variant: "ghost", size: "icon-sm" }),
-            "absolute top-4 right-4 bg-secondary",
+            "absolute top-4 right-4 bg-secondary"
           )}
           onClick={(event) => event.stopPropagation()}
         >
@@ -121,16 +122,16 @@ function TenantGrid({
 }) {
   const today = todayIsoDate()
   const active = tenants.filter(
-    (t) => !t.lastQuittanceDate || t.lastQuittanceDate >= today,
+    (t) => !t.lastQuittanceDate || t.lastQuittanceDate >= today
   )
   const inactive = tenants.filter(
-    (t) => t.lastQuittanceDate && t.lastQuittanceDate < today,
+    (t) => t.lastQuittanceDate && t.lastQuittanceDate < today
   )
 
   return (
     <div className="space-y-8">
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
           Actifs
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -147,7 +148,7 @@ function TenantGrid({
 
       {inactive.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
             Inactifs
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -170,7 +171,7 @@ export function TenantsBoard({
   profile,
   hideBackLink = false,
 }: TenantsBoardProps) {
-  const { tenants, isLoaded, addTenant } = useTenants(profile.id)
+  const { tenants, isLoaded, addTenant, refresh } = useTenants(profile.id)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const currentMonth = monthFromDate(todayIsoDate())
 
@@ -189,15 +190,14 @@ export function TenantsBoard({
             ← Retour aux SCI
           </Link>
         )}
-        <h1 className="font-heading text-2xl font-medium">
-          {profile.sciName}
-        </h1>
+        <h1 className="font-heading text-2xl font-medium">{profile.sciName}</h1>
       </div>
 
       <Tabs defaultValue="locataires">
         <TabsList>
           <TabsTab value="locataires">Locataires</TabsTab>
           <TabsTab value="quittances">Quittances</TabsTab>
+          <TabsTab value="acces">Accès</TabsTab>
         </TabsList>
 
         <TabsPanel value="locataires">
@@ -213,9 +213,12 @@ export function TenantsBoard({
                 🏠
               </div>
               <div className="space-y-1">
-                <p className="font-medium">Aucun locataire pour l&apos;instant</p>
+                <p className="font-medium">
+                  Aucun locataire pour l&apos;instant
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Ajoutez votre premier locataire pour commencer à générer des quittances.
+                  Ajoutez votre premier locataire pour commencer à générer des
+                  quittances.
                 </p>
               </div>
               <Button type="button" onClick={() => setAddDialogOpen(true)}>
@@ -247,6 +250,14 @@ export function TenantsBoard({
             profile={profile}
             tenants={tenants}
             tenantsLoaded={isLoaded}
+          />
+        </TabsPanel>
+
+        <TabsPanel value="acces">
+          <TenantsAccessView
+            tenants={tenants}
+            tenantsLoaded={isLoaded}
+            onUpdated={refresh}
           />
         </TabsPanel>
       </Tabs>
