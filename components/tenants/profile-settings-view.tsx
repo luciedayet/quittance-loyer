@@ -1,10 +1,9 @@
 "use client"
 
-import Link from "next/link"
 import { useState } from "react"
 
 import { LogoutButton } from "@/components/auth/logout-button"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -17,7 +16,6 @@ import { Label } from "@/components/ui/label"
 import { SignaturePad } from "@/components/ui/signature-pad"
 import { Textarea } from "@/components/ui/textarea"
 import type { Profile } from "@/lib/profiles"
-import { cn } from "@/lib/utils"
 
 type ProfileSettingsViewProps = {
   profile: Profile
@@ -43,10 +41,10 @@ export function ProfileSettingsView({
   const [city, setCity] = useState(profile.city)
   const [sciAddress, setSciAddress] = useState(linesToText(profile.sciAddress))
   const [propertyShortAddress, setPropertyShortAddress] = useState(
-    profile.property.shortAddress ?? "",
+    profile.property.shortAddress ?? ""
   )
   const [propertyLines, setPropertyLines] = useState(
-    linesToText(profile.property.lines),
+    linesToText(profile.property.lines)
   )
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -74,7 +72,9 @@ export function ProfileSettingsView({
       setShowPad(false)
     } catch (cause) {
       setSignatureError(
-        cause instanceof Error ? cause.message : "Erreur lors de l'enregistrement.",
+        cause instanceof Error
+          ? cause.message
+          : "Erreur lors de l'enregistrement."
       )
     } finally {
       setIsSavingSignature(false)
@@ -93,7 +93,9 @@ export function ProfileSettingsView({
       setShowPad(false)
     } catch (cause) {
       setSignatureError(
-        cause instanceof Error ? cause.message : "Erreur lors de la suppression.",
+        cause instanceof Error
+          ? cause.message
+          : "Erreur lors de la suppression."
       )
     } finally {
       setIsSavingSignature(false)
@@ -147,7 +149,7 @@ export function ProfileSettingsView({
       const data = await response.json().catch(() => null)
       if (!response.ok) {
         throw new Error(
-          data?.error ?? "Erreur lors de la mise à jour de la SCI.",
+          data?.error ?? "Erreur lors de la mise à jour de la SCI."
         )
       }
       setProfile(data as Profile)
@@ -156,7 +158,7 @@ export function ProfileSettingsView({
       setError(
         cause instanceof Error
           ? cause.message
-          : "Erreur lors de l'enregistrement.",
+          : "Erreur lors de l'enregistrement."
       )
     } finally {
       setIsSaving(false)
@@ -164,17 +166,7 @@ export function ProfileSettingsView({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
-      <div className="space-y-2">
-        <Link
-          href={`/${profile.id}`}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-        >
-          ← Retour à {profile.sciName}
-        </Link>
-        <h1 className="font-heading text-2xl font-medium">Profil</h1>
-      </div>
-
+    <div className="flex flex-col gap-8">
       <Card>
         <CardHeader>
           <CardTitle>Informations de la SCI</CardTitle>
@@ -305,7 +297,9 @@ export function ProfileSettingsView({
                     setShowPad(true)
                   }}
                 >
-                  {signatureSrc ? "Redessiner la signature" : "Dessiner la signature"}
+                  {signatureSrc
+                    ? "Redessiner la signature"
+                    : "Dessiner la signature"}
                 </Button>
                 {signatureSrc ? (
                   <Button

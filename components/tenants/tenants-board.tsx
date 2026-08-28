@@ -6,9 +6,8 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { AddTenantDialog } from "@/components/tenants/add-tenant-dialog"
-import { MissingQuittancesView } from "@/components/tenants/missing-quittances-view"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
-import { TenantsAccessView } from "@/components/tenants/tenants-access-view"
+import { useTenantsContext } from "@/components/tenants/tenants-context"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Card,
@@ -17,8 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
-import { useTenants } from "@/hooks/use-tenants"
 import {
   formatEuros,
   formatIsoDate,
@@ -31,8 +28,6 @@ import { cn } from "@/lib/utils"
 
 type TenantsBoardProps = {
   profile: Profile
-  /** Masque le lien retour vers la liste des SCI (impersonation admin). */
-  hideBackLink?: boolean
 }
 
 function TenantSkeleton() {
@@ -167,11 +162,8 @@ function TenantGrid({
   )
 }
 
-export function TenantsBoard({
-  profile,
-  hideBackLink = false,
-}: TenantsBoardProps) {
-  const { tenants, isLoaded, addTenant, refresh } = useTenants(profile.id)
+export function TenantsBoard({ profile }: TenantsBoardProps) {
+  const { tenants, isLoaded, addTenant } = useTenantsContext()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const currentMonth = monthFromDate(todayIsoDate())
 
@@ -180,87 +172,47 @@ export function TenantsBoard({
   ]
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
-      <div className="space-y-2">
-        {hideBackLink ? null : (
-          <Link
-            href="/"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-          >
-            ← Retour aux SCI
-          </Link>
-        )}
-        <h1 className="font-heading text-2xl font-medium">{profile.sciName}</h1>
-      </div>
-
-      <Tabs defaultValue="locataires">
-        <TabsList>
-          <TabsTab value="locataires">Locataires</TabsTab>
-          <TabsTab value="quittances">Quittances</TabsTab>
-          <TabsTab value="acces">Accès</TabsTab>
-        </TabsList>
-
-        <TabsPanel value="locataires">
-          {!isLoaded ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <TenantSkeleton key={`skeleton-${index}`} />
-              ))}
-            </div>
-          ) : tenants.length === 0 ? (
-            <div className="flex flex-col items-center gap-4 py-16 text-center">
-              <div className="flex size-16 items-center justify-center rounded-full bg-muted text-3xl">
-                🏠
-              </div>
-              <div className="space-y-1">
-                <p className="font-medium">
-                  Aucun locataire pour l&apos;instant
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Ajoutez votre premier locataire pour commencer à générer des
-                  quittances.
-                </p>
-              </div>
-              <Button type="button" onClick={() => setAddDialogOpen(true)}>
-                + Ajouter un locataire
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="mb-4 flex items-center justify-end">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => setAddDialogOpen(true)}
-                >
-                  + Ajouter un locataire
-                </Button>
-              </div>
-              <TenantGrid
-                profile={profile}
-                tenants={tenants}
-                currentMonth={currentMonth}
-              />
-            </>
-          )}
-        </TabsPanel>
-
-        <TabsPanel value="quittances">
-          <MissingQuittancesView
+    <div className="flex flex-col gap-4">
+      {!isLoaded ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <TenantSkeleton key={`skeleton-${index}`} />
+          ))}
+        </div>
+      ) : tenants.length === 0 ? (
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-muted text-3xl">
+            🏠
+          </div>
+          <div className="space-y-1">
+            <p className="font-medium">Aucun locataire pour l&apos;instant</p>
+            <p className="text-sm text-muted-foreground">
+              Ajoutez votre premier locataire pour commencer à générer des
+              quittances.
+            </p>
+          </div>
+          <Button type="button" onClick={() => setAddDialogOpen(true)}>
+            + Ajouter un locataire
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-end">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setAddDialogOpen(true)}
+            >
+              + Ajouter un locataire
+            </Button>
+          </div>
+          <TenantGrid
             profile={profile}
             tenants={tenants}
-            tenantsLoaded={isLoaded}
+            currentMonth={currentMonth}
           />
-        </TabsPanel>
-
-        <TabsPanel value="acces">
-          <TenantsAccessView
-            tenants={tenants}
-            tenantsLoaded={isLoaded}
-            onUpdated={refresh}
-          />
-        </TabsPanel>
-      </Tabs>
+        </>
+      )}
 
       <AddTenantDialog
         open={addDialogOpen}

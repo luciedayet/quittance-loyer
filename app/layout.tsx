@@ -80,11 +80,7 @@ export default async function RootLayout({
           {session ? (
             <Navbar
               role={session.role}
-              bailleurProfileId={
-                session.role === "bailleur" ? session.profileId : undefined
-              }
               impersonating={Boolean(impersonation)}
-              impersonatingLocataire={impersonation?.role === "locataire"}
             />
           ) : null}
           {impersonationLabel ? (

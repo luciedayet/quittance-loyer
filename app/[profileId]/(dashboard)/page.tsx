@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation"
 
 import { TenantsBoard } from "@/components/tenants/tenants-board"
-import { getImpersonation } from "@/lib/auth/impersonation"
 import { getSession } from "@/lib/auth/session"
 import { getProfileById } from "@/lib/profiles"
 
@@ -26,9 +25,5 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     notFound()
   }
 
-  const impersonation = await getImpersonation(session.role === "admin")
-  const isImpersonating =
-    impersonation?.role === "bailleur" && impersonation.profileId === profileId
-
-  return <TenantsBoard profile={profile} hideBackLink={isImpersonating} />
+  return <TenantsBoard profile={profile} />
 }
