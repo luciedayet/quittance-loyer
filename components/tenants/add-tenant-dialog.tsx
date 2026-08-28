@@ -182,6 +182,9 @@ export function AddTenantDialog({
             <Select
               value={bienId}
               onValueChange={(value) => setBienId(value ?? "")}
+              items={Object.fromEntries(
+                biens.map((bien) => [bien.id, bien.name])
+              )}
             >
               <SelectTrigger id="tenant-bien" className="w-full">
                 <SelectValue placeholder="Choisir un bien" />
