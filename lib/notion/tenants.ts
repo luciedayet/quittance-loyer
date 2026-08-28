@@ -31,7 +31,7 @@ function requireDataSourceId(): string {
   const dataSourceId = process.env.NOTION_LOCATAIRES_DATA_SOURCE_ID
   if (!dataSourceId) {
     throw new Error(
-      "NOTION_LOCATAIRES_DATA_SOURCE_ID manquant dans les variables d'environnement.",
+      "NOTION_LOCATAIRES_DATA_SOURCE_ID manquant dans les variables d'environnement."
     )
   }
   return dataSourceId
@@ -82,6 +82,7 @@ function mapPageToTenant(page: NotionPage): Tenant {
     hasAccount: Boolean(getRichText(properties["Mot de passe"])),
     rentHistory: parseRentHistory(getRichText(properties["Historique loyer"])),
     location: getSelect(properties["Lieu"]) ?? null,
+    bienId: getRelationIds(properties["Bien"])[0] ?? null,
   }
 }
 
@@ -93,6 +94,7 @@ export type NewTenantInput = {
   firstQuittanceDate?: string | null
   lastQuittanceDate?: string | null
   location?: string | null
+  bienId: string
 }
 
 export type TenantUpdateInput = Partial<NewTenantInput> & {
@@ -113,7 +115,7 @@ export async function listTenants(profileId: string): Promise<Tenant[]> {
 }
 
 export async function getTenantById(
-  tenantId: string,
+  tenantId: string
 ): Promise<Tenant | undefined> {
   try {
     const page = await getPage(tenantId)
@@ -126,7 +128,7 @@ export async function getTenantById(
 
 export async function createTenant(
   profileId: string,
-  input: NewTenantInput,
+  input: NewTenantInput
 ): Promise<Tenant> {
   const dataSourceId = requireDataSourceId()
   const bailleurPageId = await getProfilePageId(profileId)
@@ -142,6 +144,7 @@ export async function createTenant(
       Loyer: numberProperty(input.rentAmount),
       Charges: numberProperty(input.chargesAmount),
       Bailleur: relationProperty([bailleurPageId]),
+      Bien: relationProperty([input.bienId]),
       "Avatar seed": richTextProperty(avatarSeedFromName(input.name)),
       "Première quittance": dateProperty(input.firstQuittanceDate ?? null),
       "Dernière quittance": dateProperty(input.lastQuittanceDate ?? null),
@@ -154,14 +157,14 @@ export async function createTenant(
 
 export async function updateTenant(
   tenantId: string,
-  updates: TenantUpdateInput,
+  updates: TenantUpdateInput
 ): Promise<Tenant> {
   const properties: Record<string, unknown> = {}
 
   if (updates.name !== undefined) {
     properties.Nom = titleProperty(updates.name)
     properties["Avatar seed"] = richTextProperty(
-      avatarSeedFromName(updates.name),
+      avatarSeedFromName(updates.name)
     )
   }
   if (updates.civility !== undefined) {
@@ -181,13 +184,16 @@ export async function updateTenant(
   }
   if (updates.rentHistory !== undefined) {
     properties["Historique loyer"] = richTextProperty(
-      JSON.stringify(updates.rentHistory),
+      JSON.stringify(updates.rentHistory)
     )
   }
   if (updates.location !== undefined) {
     properties["Lieu"] = updates.location
       ? selectProperty(updates.location)
       : { select: null }
+  }
+  if (updates.bienId !== undefined) {
+    properties.Bien = relationProperty([updates.bienId])
   }
 
   const page = await updatePage(tenantId, { properties })
@@ -211,6 +217,14 @@ export async function removeTenant(tenantId: string): Promise<void> {
   await archivePage(tenantId)
 }
 
+export async function countTenantsForBien(bienId: string): Promise<number> {
+  const dataSourceId = requireDataSourceId()
+  const response = await queryDataSource(dataSourceId, {
+    filter: { property: "Bien", relation: { contains: bienId } },
+  })
+  return response.results.length
+}
+
 export type TenantAuth = {
   id: string
   email: string
@@ -220,7 +234,7 @@ export type TenantAuth = {
 }
 
 export async function getTenantAuthByEmail(
-  email: string,
+  email: string
 ): Promise<TenantAuth | undefined> {
   const dataSourceId = requireDataSourceId()
   const response = await queryDataSource(dataSourceId, {
@@ -241,13 +255,14 @@ export async function getTenantAuthByEmail(
     id: page.id,
     email: getEmail(page.properties["Email"]) ?? "",
     passwordHash: getRichText(page.properties["Mot de passe"]),
-    verificationCode: getRichText(page.properties["Code de vérification"]) || null,
+    verificationCode:
+      getRichText(page.properties["Code de vérification"]) || null,
     profilePageId,
   }
 }
 
 export async function getTenantOwnerProfilePageId(
-  tenantId: string,
+  tenantId: string
 ): Promise<string | undefined> {
   try {
     const page = await getPage(tenantId)
@@ -260,7 +275,7 @@ export async function getTenantOwnerProfilePageId(
 
 export async function inviteTenant(
   tenantId: string,
-  email: string,
+  email: string
 ): Promise<{ email: string; verificationCode: string }> {
   const verificationCode = generateActivationCode()
 
@@ -277,7 +292,7 @@ export async function inviteTenant(
 
 export async function activateTenant(
   tenantId: string,
-  passwordHash: string,
+  passwordHash: string
 ): Promise<void> {
   await updatePage(tenantId, {
     properties: {
@@ -289,7 +304,7 @@ export async function activateTenant(
 
 export async function syncTenantQuittanceDates(
   tenantId: string,
-  paymentDate: string,
+  paymentDate: string
 ): Promise<void> {
   const tenant = await getTenantById(tenantId)
   if (!tenant) return
@@ -322,7 +337,7 @@ export async function syncTenantQuittanceDates(
 export async function setTenantQuittanceDates(
   tenantId: string,
   firstQuittanceDate: string | null,
-  lastQuittanceDate: string | null,
+  lastQuittanceDate: string | null
 ): Promise<void> {
   await updatePage(tenantId, {
     properties: {

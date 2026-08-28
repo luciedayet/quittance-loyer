@@ -24,12 +24,14 @@ export type Tenant = {
   hasAccount: boolean
   rentHistory: RentChange[]
   location: string | null
+  /** Bien auquel ce locataire est rattaché. */
+  bienId: string | null
 }
 
 /** Loyer/charges applicables pour un mois, augmentations comprises. */
 export function effectiveRateAt(
   tenant: Tenant,
-  periodMonth: string,
+  periodMonth: string
 ): { rentAmount: number; chargesAmount: number } {
   let applicable: RentChange | null = null
 

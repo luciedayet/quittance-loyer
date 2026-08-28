@@ -20,12 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import type { Bien } from "@/lib/biens"
 import type { TenantCivility } from "@/lib/tenants"
 
 type AddTenantDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   availableLocations: string[]
+  biens: Bien[]
   onSubmit: (input: {
     civility: TenantCivility
     name: string
@@ -34,6 +36,7 @@ type AddTenantDialogProps = {
     firstQuittanceDate: string | null
     lastQuittanceDate: string | null
     location: string | null
+    bienId: string
   }) => void
 }
 
@@ -41,6 +44,7 @@ export function AddTenantDialog({
   open,
   onOpenChange,
   availableLocations,
+  biens,
   onSubmit,
 }: AddTenantDialogProps) {
   const [civility, setCivility] = useState<TenantCivility>("M.")
@@ -50,6 +54,7 @@ export function AddTenantDialog({
   const [firstQuittanceDate, setFirstQuittanceDate] = useState("")
   const [lastQuittanceDate, setLastQuittanceDate] = useState("")
   const [location, setLocation] = useState("")
+  const [bienId, setBienId] = useState(biens[0]?.id ?? "")
   const [error, setError] = useState<string | null>(null)
 
   function resetForm() {
@@ -60,6 +65,7 @@ export function AddTenantDialog({
     setFirstQuittanceDate("")
     setLastQuittanceDate("")
     setLocation("")
+    setBienId(biens[0]?.id ?? "")
     setError(null)
   }
 
@@ -84,6 +90,11 @@ export function AddTenantDialog({
       return
     }
 
+    if (!bienId) {
+      setError("Le bien est requis.")
+      return
+    }
+
     onSubmit({
       civility,
       name: name.trim(),
@@ -92,6 +103,7 @@ export function AddTenantDialog({
       firstQuittanceDate: firstQuittanceDate || null,
       lastQuittanceDate: lastQuittanceDate || null,
       location: location.trim() || null,
+      bienId,
     })
     resetForm()
     onOpenChange(false)
@@ -163,6 +175,25 @@ export function AddTenantDialog({
                 placeholder="50,00"
               />
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="tenant-bien">Bien</Label>
+            <Select
+              value={bienId}
+              onValueChange={(value) => setBienId(value ?? "")}
+            >
+              <SelectTrigger id="tenant-bien" className="w-full">
+                <SelectValue placeholder="Choisir un bien" />
+              </SelectTrigger>
+              <SelectContent>
+                {biens.map((bien) => (
+                  <SelectItem key={bien.id} value={bien.id}>
+                    {bien.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-2">

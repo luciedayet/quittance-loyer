@@ -1,4 +1,11 @@
-import { archivePage, createPage, getPage, queryAllPages, queryDataSource, updatePage } from "./client"
+import {
+  archivePage,
+  createPage,
+  getPage,
+  queryAllPages,
+  queryDataSource,
+  updatePage,
+} from "./client"
 import {
   getRichText,
   getTitle,
@@ -13,7 +20,7 @@ function requireDataSourceId(): string {
   const dataSourceId = process.env.NOTION_BAILLEURS_DATA_SOURCE_ID
   if (!dataSourceId) {
     throw new Error(
-      "NOTION_BAILLEURS_DATA_SOURCE_ID manquant dans les variables d'environnement.",
+      "NOTION_BAILLEURS_DATA_SOURCE_ID manquant dans les variables d'environnement."
     )
   }
   return dataSourceId
@@ -28,7 +35,6 @@ function toLines(value: string): string[] {
 
 function mapPageToProfile(page: NotionPage): Profile {
   const properties = page.properties
-  const shortAddress = getRichText(properties["Adresse bien (courte)"])
   const signaturePath = getRichText(properties["Signature (chemin)"])
 
   return {
@@ -37,10 +43,6 @@ function mapPageToProfile(page: NotionPage): Profile {
     managerName: getRichText(properties["Gerant"]),
     sciAddress: toLines(getRichText(properties["Adresse SCI"])),
     city: getRichText(properties["Ville"]),
-    property: {
-      shortAddress: shortAddress || undefined,
-      lines: toLines(getRichText(properties["Adresse bien (lignes)"])),
-    },
     signatureSrc: signaturePath || null,
   }
 }
@@ -55,7 +57,7 @@ export async function getProfiles(): Promise<Profile[]> {
 }
 
 export async function getProfileById(
-  profileId: string,
+  profileId: string
 ): Promise<Profile | undefined> {
   const dataSourceId = requireDataSourceId()
   const response = await queryDataSource(dataSourceId, {
@@ -68,7 +70,7 @@ export async function getProfileById(
 }
 
 export async function getProfileByPageId(
-  pageId: string,
+  pageId: string
 ): Promise<Profile | undefined> {
   try {
     const page = await getPage(pageId)
@@ -80,7 +82,7 @@ export async function getProfileByPageId(
 }
 
 export async function getProfilePageId(
-  profileId: string,
+  profileId: string
 ): Promise<string | undefined> {
   const dataSourceId = requireDataSourceId()
   const response = await queryDataSource(dataSourceId, {
@@ -123,7 +125,9 @@ export async function removeProfile(profileId: string): Promise<void> {
 }
 
 /** Retourne un Map de pageId Notion → nom de la SCI, pour l'affichage admin. */
-export async function getProfileSciNameByPageId(): Promise<Map<string, string>> {
+export async function getProfileSciNameByPageId(): Promise<
+  Map<string, string>
+> {
   const dataSourceId = requireDataSourceId()
   const pages = await queryAllPages(dataSourceId)
   const map = new Map<string, string>()
@@ -142,7 +146,10 @@ export async function getProfilesWithPageIds(): Promise<
   const pages = await queryAllPages(dataSourceId, {
     sorts: [{ property: "Nom SCI", direction: "ascending" }],
   })
-  return pages.map((page) => ({ profile: mapPageToProfile(page), pageId: page.id }))
+  return pages.map((page) => ({
+    profile: mapPageToProfile(page),
+    pageId: page.id,
+  }))
 }
 
 export type ProfileUpdateInput = Partial<{
@@ -150,14 +157,12 @@ export type ProfileUpdateInput = Partial<{
   managerName: string
   city: string
   sciAddress: string[]
-  propertyShortAddress: string
-  propertyLines: string[]
   signatureSrc: string
 }>
 
 export async function updateProfile(
   profileId: string,
-  updates: ProfileUpdateInput,
+  updates: ProfileUpdateInput
 ): Promise<Profile> {
   const pageId = await getProfilePageId(profileId)
   if (!pageId) {
@@ -176,23 +181,12 @@ export async function updateProfile(
     properties["Ville"] = richTextProperty(updates.city)
   }
   if (updates.sciAddress !== undefined) {
-    properties["Adresse SCI"] = richTextProperty(
-      updates.sciAddress.join("\n"),
-    )
+    properties["Adresse SCI"] = richTextProperty(updates.sciAddress.join("\n"))
   }
-  if (updates.propertyShortAddress !== undefined) {
-    properties["Adresse bien (courte)"] = richTextProperty(
-      updates.propertyShortAddress,
-    )
-  }
-  if (updates.propertyLines !== undefined) {
-    properties["Adresse bien (lignes)"] = richTextProperty(
-      updates.propertyLines.join("\n"),
-    )
-  }
-
   if (updates.signatureSrc !== undefined) {
-    properties["Signature (chemin)"] = richTextChunkedProperty(updates.signatureSrc)
+    properties["Signature (chemin)"] = richTextChunkedProperty(
+      updates.signatureSrc
+    )
   }
 
   const page = await updatePage(pageId, { properties })

@@ -12,6 +12,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
 import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
+import { useBiensContext } from "@/components/tenants/biens-context"
 import { useQuittancePdf } from "@/components/pdf/use-quittance-pdf"
 import { useProfileQuittances } from "@/hooks/use-profile-quittances"
 import type { QuittanceRecord } from "@/lib/notion/quittances"
@@ -192,6 +193,11 @@ export function MissingQuittancesView({
     isLoaded: quittancesLoaded,
     refresh,
   } = useProfileQuittances(profile.id)
+  const { biens } = useBiensContext()
+  const biensById = useMemo(
+    () => new Map(biens.map((bien) => [bien.id, bien])),
+    [biens]
+  )
   const [groupBy, setGroupBy] = useState<GroupBy>("tenant")
   const [generatedGroupBy, setGeneratedGroupBy] = useState<GroupBy>("tenant")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -213,6 +219,7 @@ export function MissingQuittancesView({
     const fields = buildQuittanceFields(
       profile,
       tenant,
+      (tenant.bienId && biensById.get(tenant.bienId)) || null,
       quittance.paymentDate,
       quittance.periodMonth
     )
@@ -234,6 +241,7 @@ export function MissingQuittancesView({
     const fields = buildQuittanceFields(
       profile,
       tenant,
+      (tenant.bienId && biensById.get(tenant.bienId)) || null,
       quittance.paymentDate,
       quittance.periodMonth
     )
@@ -624,6 +632,10 @@ export function MissingQuittancesView({
         onOpenChange={setDialogOpen}
         profile={profile}
         tenant={selectedTenant}
+        bien={
+          (selectedTenant?.bienId && biensById.get(selectedTenant.bienId)) ||
+          null
+        }
         initialPeriodMonth={selectedMonth}
         onLogged={refresh}
       />

@@ -17,20 +17,24 @@ This will place the ui components in the `components` directory.
 To use the components in your app, import them as follows:
 
 ```tsx
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 ```
 
 ## Configuration Notion
 
-Les données (bailleurs, locataires, historique des quittances) sont stockées dans des bases Notion au lieu du `localStorage` du navigateur.
+Les données (bailleurs, biens, locataires, historique des quittances) sont stockées dans des bases Notion au lieu du `localStorage` du navigateur.
 
 1. Crée une intégration interne sur https://www.notion.so/my-integrations et récupère sa clé secrète (`Internal Integration Secret`).
-2. Dans Notion, ouvre la page **"Quittances Loyer"** (créée pour ce projet) et clique sur **"Connexions"** (`···` en haut à droite → `Connexions` → sélectionne ton intégration) afin de lui donner accès à cette page et à ses sous-bases (`Bailleurs`, `Locataires`, `Quittances`).
+2. Dans Notion, ouvre la page **"Quittances Loyer"** (créée pour ce projet) et clique sur **"Connexions"** (`···` en haut à droite → `Connexions` → sélectionne ton intégration) afin de lui donner accès à cette page et à ses sous-bases (`Bailleurs`, `Biens`, `Locataires`, `Quittances`).
 3. Copie `.env.example` vers `.env.local` et renseigne :
    - `NOTION_API_KEY` : la clé secrète de l'intégration.
-   - `NOTION_BAILLEURS_DATA_SOURCE_ID` et `NOTION_LOCATAIRES_DATA_SOURCE_ID` : IDs des data sources des bases Notion correspondantes (requis).
+   - `NOTION_BAILLEURS_DATA_SOURCE_ID`, `NOTION_LOCATAIRES_DATA_SOURCE_ID` et `NOTION_BIENS_DATA_SOURCE_ID` : IDs des data sources des bases Notion correspondantes (requis).
    - `NOTION_QUITTANCES_DATA_SOURCE_ID` : optionnel, active l'historique des quittances générées.
-4. Lance `npm run dev` : les SCI (bailleurs) et locataires sont désormais lus/écrits via l'API Notion (routes `app/api/tenants/*` côté serveur, `NOTION_API_KEY` n'est jamais exposée au navigateur).
+4. Lance `npm run dev` : les SCI (bailleurs), biens et locataires sont désormais lus/écrits via l'API Notion (routes `app/api/tenants/*`, `app/api/biens/*` côté serveur, `NOTION_API_KEY` n'est jamais exposée au navigateur).
+
+### Modèle de données : un bailleur, plusieurs biens
+
+Un compte bailleur (une SCI) peut gérer plusieurs biens (`Biens`, avec une relation vers `Bailleurs`), et chaque locataire est rattaché à un bien précis (relation `Bien` sur `Locataires`) plutôt qu'à la SCI dans son ensemble. L'adresse utilisée sur les quittances provient donc du bien du locataire, pas du profil de la SCI.
 
 ## Authentification
 

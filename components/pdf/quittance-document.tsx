@@ -100,7 +100,7 @@ type QuittanceDocumentProps = {
 }
 
 export function QuittanceDocument({ data }: QuittanceDocumentProps) {
-  const { profile, tenant } = data
+  const { profile, tenant, bien } = data
 
   return (
     <Document>
@@ -122,13 +122,14 @@ export function QuittanceDocument({ data }: QuittanceDocumentProps) {
 
           <View style={styles.addressRight}>
             <Text style={styles.addressLineRight}>{data.tenantShortLabel}</Text>
-            {profile.property.shortAddress ? (
-              <Text style={styles.addressLineRight}>
-                {profile.property.shortAddress}
-              </Text>
+            {bien.shortAddress ? (
+              <Text style={styles.addressLineRight}>{bien.shortAddress}</Text>
             ) : (
-              profile.property.lines.map((line) => (
-                <Text key={line} style={styles.addressLineRight}>
+              bien.lines.map((line, index) => (
+                <Text
+                  key={`bien-right-${index}`}
+                  style={styles.addressLineRight}
+                >
                   {line}
                 </Text>
               ))
@@ -142,8 +143,8 @@ export function QuittanceDocument({ data }: QuittanceDocumentProps) {
 
         <Text style={styles.sectionTitle}>Adresse de la location :</Text>
         <View style={styles.propertyBlock}>
-          {profile.property.lines.map((line) => (
-            <Text key={`property-${line}`} style={styles.addressLine}>
+          {bien.lines.map((line, index) => (
+            <Text key={`bien-${index}`} style={styles.addressLine}>
               {line}
             </Text>
           ))}

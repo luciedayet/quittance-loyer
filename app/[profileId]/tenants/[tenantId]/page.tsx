@@ -5,6 +5,7 @@ import { TenantQuittancesView } from "@/components/tenants/tenant-quittances-vie
 import { getImpersonation } from "@/lib/auth/impersonation"
 import { getSession } from "@/lib/auth/session"
 import { getProfileById } from "@/lib/profiles"
+import { getBienById } from "@/lib/notion/biens"
 import { getTenantById } from "@/lib/notion/tenants"
 import { listQuittancesForTenant } from "@/lib/notion/quittances"
 
@@ -31,7 +32,10 @@ export default async function TenantQuittancesPage({
   const tenant = await getTenantById(tenantId)
   if (!tenant) notFound()
 
-  const quittances = await listQuittancesForTenant(tenantId)
+  const [quittances, bien] = await Promise.all([
+    listQuittancesForTenant(tenantId),
+    tenant.bienId ? getBienById(tenant.bienId) : Promise.resolve(undefined),
+  ])
 
   const impersonation = await getImpersonation(session.role === "admin")
   const isImpersonatingThisTenant =
@@ -43,6 +47,7 @@ export default async function TenantQuittancesPage({
     <TenantQuittancesView
       profile={profile}
       tenant={tenant}
+      bien={bien ?? null}
       initialQuittances={quittances}
       readOnly={session.role === "locataire" || isImpersonatingThisTenant}
     />

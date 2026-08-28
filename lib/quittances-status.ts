@@ -57,7 +57,6 @@ export function profileMissingFields(profile: Profile): string[] {
   if (!profile.managerName.trim()) missing.push("Nom du gérant")
   if (!profile.city.trim()) missing.push("Ville")
   if (profile.sciAddress.length === 0) missing.push("Adresse de la SCI")
-  if (profile.property.lines.length === 0) missing.push("Adresse du bien loué")
   if (!profile.signatureSrc) missing.push("Signature")
   return missing
 }

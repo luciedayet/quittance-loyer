@@ -1,19 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 import { forbiddenResponse, requireSession } from "@/lib/auth/session"
-import { createTenant, listTenants } from "@/lib/notion/tenants"
-import { isValidIsoDate } from "@/lib/quittance"
-import type { TenantCivility } from "@/lib/tenants"
+import { createBien, listBiens } from "@/lib/notion/biens"
 
-function isValidCivility(value: unknown): value is TenantCivility {
-  return value === "M." || value === "Mme"
-}
-
-function isValidOptionalDate(
-  value: unknown
-): value is string | null | undefined {
-  if (value === undefined || value === null) return true
-  return typeof value === "string" && isValidIsoDate(value)
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
 }
 
 export async function GET(request: NextRequest) {
@@ -34,8 +25,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const tenants = await listTenants(profileId)
-    return NextResponse.json({ tenants })
+    const biens = await listBiens(profileId)
+    return NextResponse.json({ biens })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },
@@ -49,17 +40,7 @@ export async function POST(request: NextRequest) {
   if (session instanceof NextResponse) return session
 
   const body = await request.json()
-  const {
-    profileId,
-    civility,
-    name,
-    rentAmount,
-    chargesAmount,
-    firstQuittanceDate,
-    lastQuittanceDate,
-    location,
-    bienId,
-  } = body ?? {}
+  const { profileId, name, shortAddress, lines } = body ?? {}
 
   if (session.role === "locataire") return forbiddenResponse()
   if (
@@ -72,41 +53,25 @@ export async function POST(request: NextRequest) {
 
   if (
     typeof profileId !== "string" ||
-    !isValidCivility(civility) ||
     typeof name !== "string" ||
     !name.trim() ||
-    typeof rentAmount !== "number" ||
-    !Number.isFinite(rentAmount) ||
-    rentAmount <= 0 ||
-    typeof chargesAmount !== "number" ||
-    !Number.isFinite(chargesAmount) ||
-    chargesAmount < 0 ||
-    !isValidOptionalDate(firstQuittanceDate) ||
-    !isValidOptionalDate(lastQuittanceDate) ||
-    typeof bienId !== "string" ||
-    !bienId
+    (shortAddress !== undefined && typeof shortAddress !== "string") ||
+    !isStringArray(lines)
   ) {
     return NextResponse.json(
-      { error: "Données de locataire invalides." },
+      { error: "Données de bien invalides." },
       { status: 400 }
     )
   }
 
   try {
-    const tenant = await createTenant(profileId, {
-      civility,
+    const bien = await createBien(profileId, {
       name: name.trim(),
-      rentAmount,
-      chargesAmount,
-      firstQuittanceDate: firstQuittanceDate ?? null,
-      lastQuittanceDate: lastQuittanceDate ?? null,
-      location:
-        typeof location === "string" && location.trim()
-          ? location.trim()
-          : null,
-      bienId,
+      shortAddress:
+        typeof shortAddress === "string" ? shortAddress.trim() : undefined,
+      lines,
     })
-    return NextResponse.json(tenant, { status: 201 })
+    return NextResponse.json(bien, { status: 201 })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },

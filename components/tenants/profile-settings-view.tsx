@@ -40,12 +40,6 @@ export function ProfileSettingsView({
   const [managerName, setManagerName] = useState(profile.managerName)
   const [city, setCity] = useState(profile.city)
   const [sciAddress, setSciAddress] = useState(linesToText(profile.sciAddress))
-  const [propertyShortAddress, setPropertyShortAddress] = useState(
-    profile.property.shortAddress ?? ""
-  )
-  const [propertyLines, setPropertyLines] = useState(
-    linesToText(profile.property.lines)
-  )
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -106,7 +100,6 @@ export function ProfileSettingsView({
     event.preventDefault()
 
     const addressLines = textToLines(sciAddress)
-    const propertyAddressLines = textToLines(propertyLines)
 
     if (!sciName.trim()) {
       setError("Le nom de la SCI est requis.")
@@ -124,10 +117,6 @@ export function ProfileSettingsView({
       setError("L'adresse de la SCI est requise.")
       return
     }
-    if (propertyAddressLines.length === 0) {
-      setError("L'adresse du bien loué est requise.")
-      return
-    }
 
     setIsSaving(true)
     setError(null)
@@ -142,8 +131,6 @@ export function ProfileSettingsView({
           managerName: managerName.trim(),
           city: city.trim(),
           sciAddress: addressLines,
-          propertyShortAddress: propertyShortAddress.trim(),
-          propertyLines: propertyAddressLines,
         }),
       })
       const data = await response.json().catch(() => null)
@@ -172,7 +159,8 @@ export function ProfileSettingsView({
           <CardTitle>Informations de la SCI</CardTitle>
           <CardDescription>
             Ces informations sont utilisées sur les quittances générées pour
-            cette SCI.
+            cette SCI. L&apos;adresse des biens loués se gère désormais dans
+            l&apos;onglet Biens.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -214,32 +202,6 @@ export function ProfileSettingsView({
                 id="profile-city"
                 value={city}
                 onChange={(event) => setCity(event.target.value)}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="profile-property-short">
-                Libellé court du bien (optionnel)
-              </Label>
-              <Input
-                id="profile-property-short"
-                value={propertyShortAddress}
-                onChange={(event) =>
-                  setPropertyShortAddress(event.target.value)
-                }
-                placeholder="Appartement 3, Bâtiment A"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="profile-property-lines">
-                Adresse du bien loué (une ligne par ligne d&apos;adresse)
-              </Label>
-              <Textarea
-                id="profile-property-lines"
-                value={propertyLines}
-                onChange={(event) => setPropertyLines(event.target.value)}
-                rows={3}
               />
             </div>
 

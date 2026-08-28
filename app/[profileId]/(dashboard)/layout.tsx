@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 
 import { DashboardShell } from "@/components/layout/dashboard-shell"
+import { BiensProvider } from "@/components/tenants/biens-context"
 import { TenantsProvider } from "@/components/tenants/tenants-context"
 import { getImpersonation } from "@/lib/auth/impersonation"
 import { getSession } from "@/lib/auth/session"
@@ -33,10 +34,12 @@ export default async function DashboardLayout({
     impersonation?.role === "bailleur" && impersonation.profileId === profileId
 
   return (
-    <TenantsProvider profileId={profile.id}>
-      <DashboardShell profile={profile} hideBackLink={isImpersonating}>
-        {children}
-      </DashboardShell>
-    </TenantsProvider>
+    <BiensProvider profileId={profile.id}>
+      <TenantsProvider profileId={profile.id}>
+        <DashboardShell profile={profile} hideBackLink={isImpersonating}>
+          {children}
+        </DashboardShell>
+      </TenantsProvider>
+    </BiensProvider>
   )
 }

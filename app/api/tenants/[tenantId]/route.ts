@@ -51,16 +51,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     lastQuittanceDate,
     rentHistory,
     location,
+    bienId,
   } = body ?? {}
 
   const updates: Parameters<typeof updateTenant>[1] = {}
 
   if (civility !== undefined) {
     if (!isValidCivility(civility)) {
-      return NextResponse.json(
-        { error: "Civilité invalide." },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: "Civilité invalide." }, { status: 400 })
     }
     updates.civility = civility
   }
@@ -73,7 +71,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   if (rentAmount !== undefined) {
-    if (typeof rentAmount !== "number" || !Number.isFinite(rentAmount) || rentAmount <= 0) {
+    if (
+      typeof rentAmount !== "number" ||
+      !Number.isFinite(rentAmount) ||
+      rentAmount <= 0
+    ) {
       return NextResponse.json({ error: "Loyer invalide." }, { status: 400 })
     }
     updates.rentAmount = rentAmount
@@ -94,7 +96,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (firstQuittanceDate !== null && !isValidIsoDate(firstQuittanceDate)) {
       return NextResponse.json(
         { error: "Date de première quittance invalide." },
-        { status: 400 },
+        { status: 400 }
       )
     }
     updates.firstQuittanceDate = firstQuittanceDate
@@ -104,7 +106,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (lastQuittanceDate !== null && !isValidIsoDate(lastQuittanceDate)) {
       return NextResponse.json(
         { error: "Date de dernière quittance invalide." },
-        { status: 400 },
+        { status: 400 }
       )
     }
     updates.lastQuittanceDate = lastQuittanceDate
@@ -114,7 +116,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (!Array.isArray(rentHistory) || !rentHistory.every(isValidRentChange)) {
       return NextResponse.json(
         { error: "Historique de loyer invalide." },
-        { status: 400 },
+        { status: 400 }
       )
     }
     updates.rentHistory = rentHistory
@@ -124,7 +126,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (location !== null && typeof location !== "string") {
       return NextResponse.json({ error: "Lieu invalide." }, { status: 400 })
     }
-    updates.location = typeof location === "string" && location.trim() ? location.trim() : null
+    updates.location =
+      typeof location === "string" && location.trim() ? location.trim() : null
+  }
+
+  if (bienId !== undefined) {
+    if (typeof bienId !== "string" || !bienId) {
+      return NextResponse.json({ error: "Bien invalide." }, { status: 400 })
+    }
+    updates.bienId = bienId
   }
 
   try {
@@ -133,7 +143,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }
@@ -154,7 +164,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }

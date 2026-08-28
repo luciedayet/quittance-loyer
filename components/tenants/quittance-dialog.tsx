@@ -24,6 +24,7 @@ import {
   periodFromMonth,
   todayIsoDate,
 } from "@/lib/quittance"
+import type { Bien } from "@/lib/biens"
 import type { Profile } from "@/lib/profiles"
 import type { Tenant } from "@/lib/tenants"
 import { toastManager } from "@/lib/toast-manager"
@@ -33,6 +34,7 @@ type QuittanceDialogProps = {
   onOpenChange: (open: boolean) => void
   profile: Profile
   tenant: Tenant | null
+  bien: Bien | null
   onLogged?: () => void
   /** Pré-remplit le mois concerné (relance des quittances manquantes). */
   initialPeriodMonth?: string
@@ -43,6 +45,7 @@ export function QuittanceDialog({
   onOpenChange,
   profile,
   tenant,
+  bien,
   onLogged,
   initialPeriodMonth,
 }: QuittanceDialogProps) {
@@ -79,11 +82,12 @@ export function QuittanceDialog({
     return buildQuittanceFields(
       profile,
       tenant,
+      bien,
       paymentDate,
       periodMonth,
       issueDate
     )
-  }, [paymentDate, periodMonth, issueDate, profile, tenant])
+  }, [paymentDate, periodMonth, issueDate, profile, tenant, bien])
 
   useEffect(() => {
     if (!fields) return

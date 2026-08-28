@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
 import { useQuittancePdf } from "@/components/pdf/use-quittance-pdf"
+import type { Bien } from "@/lib/biens"
 import type { QuittanceRecord } from "@/lib/notion/quittances"
 import type { Profile } from "@/lib/profiles"
 import {
@@ -37,6 +38,7 @@ import { cn } from "@/lib/utils"
 type TenantQuittancesViewProps = {
   profile: Profile
   tenant: Tenant
+  bien: Bien | null
   initialQuittances: QuittanceRecord[]
   readOnly?: boolean
 }
@@ -54,6 +56,7 @@ function periodLabel(periodMonth: string): string {
 export function TenantQuittancesView({
   profile,
   tenant,
+  bien,
   initialQuittances,
   readOnly = false,
 }: TenantQuittancesViewProps) {
@@ -87,6 +90,7 @@ export function TenantQuittancesView({
     const fields = buildQuittanceFields(
       profile,
       tenant,
+      bien,
       quittance.paymentDate,
       quittance.periodMonth
     )
@@ -108,6 +112,7 @@ export function TenantQuittancesView({
     const fields = buildQuittanceFields(
       profile,
       tenant,
+      bien,
       quittance.paymentDate,
       quittance.periodMonth
     )
@@ -274,6 +279,7 @@ export function TenantQuittancesView({
         onOpenChange={setDialogOpen}
         profile={profile}
         tenant={tenant}
+        bien={bien}
         initialPeriodMonth={selectedMonth}
         onLogged={refreshQuittances}
       />

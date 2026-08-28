@@ -1,5 +1,6 @@
 import { toCurrency } from "n2words/fr-FR"
 
+import type { Bien } from "@/lib/biens"
 import type { Profile } from "@/lib/profiles"
 import {
   effectiveRateAt,
@@ -10,6 +11,7 @@ import {
 export type QuittanceFields = {
   profile: Profile
   tenant: Tenant
+  bien: Pick<Bien, "shortAddress" | "lines">
   periodLabel: string
   periodStart: string
   periodEnd: string
@@ -80,7 +82,7 @@ export function formatIsoDate(value: string): string {
   const date = new Date(
     Number(yearPart),
     Number(monthPart) - 1,
-    Number(dayPart),
+    Number(dayPart)
   )
   return formatDateFr(date)
 }
@@ -127,7 +129,7 @@ export function arrivalStartMonth(arrivalDate: string): string {
 /** Mois de fin pour les quittances à générer depuis une date de départ (null = mois courant). */
 export function departureEndMonth(
   departureDate: string | null | undefined,
-  currentMonth: string,
+  currentMonth: string
 ): string {
   if (!departureDate) return currentMonth
   const month = monthFromDate(departureDate)
@@ -137,7 +139,7 @@ export function departureEndMonth(
 
 export function monthsBetweenInclusive(
   startMonth: string,
-  endMonth: string,
+  endMonth: string
 ): string[] {
   if (!isValidPeriodMonth(startMonth) || !isValidPeriodMonth(endMonth)) {
     return []
@@ -198,9 +200,10 @@ export function defaultIssueDate(periodMonth: string): string {
 export function buildQuittanceFields(
   profile: Profile,
   tenant: Tenant,
+  bien: Pick<Bien, "shortAddress" | "lines"> | null,
   paymentDate: string,
   periodMonth: string,
-  issueDate?: string,
+  issueDate?: string
 ): QuittanceFields | null {
   if (!isValidIsoDate(paymentDate) || !isValidPeriodMonth(periodMonth)) {
     return null
@@ -216,7 +219,7 @@ export function buildQuittanceFields(
   const paymentDateObject = new Date(
     Number(yearPart),
     Number(monthPart) - 1,
-    Number(dayPart),
+    Number(dayPart)
   )
 
   const issueDateStr =
@@ -227,6 +230,7 @@ export function buildQuittanceFields(
   return {
     profile,
     tenant,
+    bien: bien ?? { shortAddress: undefined, lines: [] },
     periodLabel: period.label,
     periodStart: period.start,
     periodEnd: period.end,

@@ -16,13 +16,14 @@ type DashboardShellProps = {
 
 const SECTIONS = [
   { href: "", label: "Accueil" },
+  { href: "/biens", label: "Biens" },
   { href: "/locataires", label: "Locataires" },
   { href: "/quittances", label: "Quittances" },
   { href: "/acces", label: "Accès" },
   { href: "/profile", label: "Profil" },
 ]
 
-/** Bandeau de navigation partagé entre les pages Accueil/Locataires/Quittances/Accès/Profil d'une SCI. */
+/** Bandeau de navigation partagé entre les pages Accueil/Biens/Locataires/Quittances/Accès/Profil d'une SCI. */
 export function DashboardShell({
   profile,
   hideBackLink = false,

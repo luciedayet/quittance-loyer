@@ -7,6 +7,7 @@ import { useState } from "react"
 
 import { AddTenantDialog } from "@/components/tenants/add-tenant-dialog"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
+import { useBiensContext } from "@/components/tenants/biens-context"
 import { useTenantsContext } from "@/components/tenants/tenants-context"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -16,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import type { Bien } from "@/lib/biens"
 import {
   formatEuros,
   formatIsoDate,
@@ -46,10 +48,12 @@ function TenantCard({
   profile,
   tenant,
   currentMonth,
+  bien,
 }: {
   profile: Profile
   tenant: Tenant
   currentMonth: string
+  bien: Bien | undefined
 }) {
   const rate = effectiveRateAt(tenant, currentMonth)
   return (
@@ -81,7 +85,12 @@ function TenantCard({
               {formatEuros(rate.chargesAmount)})
             </span>
           </CardDescription>
-          {tenant.location ? (
+          {bien ? (
+            <p className="text-xs text-muted-foreground">
+              {bien.name}
+              {tenant.location ? ` · ${tenant.location}` : ""}
+            </p>
+          ) : tenant.location ? (
             <p className="text-xs text-muted-foreground">{tenant.location}</p>
           ) : null}
         </CardHeader>
@@ -110,10 +119,12 @@ function TenantGrid({
   profile,
   tenants,
   currentMonth,
+  biensById,
 }: {
   profile: Profile
   tenants: Tenant[]
   currentMonth: string
+  biensById: Map<string, Bien>
 }) {
   const today = todayIsoDate()
   const active = tenants.filter(
@@ -136,6 +147,7 @@ function TenantGrid({
               profile={profile}
               tenant={tenant}
               currentMonth={currentMonth}
+              bien={tenant.bienId ? biensById.get(tenant.bienId) : undefined}
             />
           ))}
         </div>
@@ -153,6 +165,7 @@ function TenantGrid({
                 profile={profile}
                 tenant={tenant}
                 currentMonth={currentMonth}
+                bien={tenant.bienId ? biensById.get(tenant.bienId) : undefined}
               />
             ))}
           </div>
@@ -164,12 +177,16 @@ function TenantGrid({
 
 export function TenantsBoard({ profile }: TenantsBoardProps) {
   const { tenants, isLoaded, addTenant } = useTenantsContext()
+  const { biens, isLoaded: biensLoaded } = useBiensContext()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const currentMonth = monthFromDate(todayIsoDate())
 
   const availableLocations = [
     ...new Set(tenants.map((t) => t.location).filter(Boolean) as string[]),
   ]
+  const biensById = new Map(biens.map((bien) => [bien.id, bien]))
+
+  const noBiens = biensLoaded && biens.length === 0
 
   return (
     <div className="flex flex-col gap-4">
@@ -187,13 +204,23 @@ export function TenantsBoard({ profile }: TenantsBoardProps) {
           <div className="space-y-1">
             <p className="font-medium">Aucun locataire pour l&apos;instant</p>
             <p className="text-sm text-muted-foreground">
-              Ajoutez votre premier locataire pour commencer à générer des
-              quittances.
+              {noBiens
+                ? "Créez d'abord un bien dans l'onglet Biens pour pouvoir y rattacher un locataire."
+                : "Ajoutez votre premier locataire pour commencer à générer des quittances."}
             </p>
           </div>
-          <Button type="button" onClick={() => setAddDialogOpen(true)}>
-            + Ajouter un locataire
-          </Button>
+          {noBiens ? (
+            <Link
+              href={`/${profile.id}/biens`}
+              className={cn(buttonVariants({ variant: "default" }))}
+            >
+              Aller à Biens
+            </Link>
+          ) : (
+            <Button type="button" onClick={() => setAddDialogOpen(true)}>
+              + Ajouter un locataire
+            </Button>
+          )}
         </div>
       ) : (
         <>
@@ -201,6 +228,7 @@ export function TenantsBoard({ profile }: TenantsBoardProps) {
             <Button
               type="button"
               size="sm"
+              disabled={noBiens}
               onClick={() => setAddDialogOpen(true)}
             >
               + Ajouter un locataire
@@ -210,6 +238,7 @@ export function TenantsBoard({ profile }: TenantsBoardProps) {
             profile={profile}
             tenants={tenants}
             currentMonth={currentMonth}
+            biensById={biensById}
           />
         </>
       )}
@@ -218,6 +247,7 @@ export function TenantsBoard({ profile }: TenantsBoardProps) {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         availableLocations={availableLocations}
+        biens={biens}
         onSubmit={addTenant}
       />
     </div>

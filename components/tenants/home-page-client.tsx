@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useMemo, useState } from "react"
 
 import { QuittanceDialog } from "@/components/tenants/quittance-dialog"
+import { useBiensContext } from "@/components/tenants/biens-context"
 import { useTenantsContext } from "@/components/tenants/tenants-context"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -88,6 +89,11 @@ function TaskCard({
 
 export function HomePageClient({ profile }: { profile: Profile }) {
   const { tenants, isLoaded: tenantsLoaded } = useTenantsContext()
+  const { biens } = useBiensContext()
+  const biensById = useMemo(
+    () => new Map(biens.map((bien) => [bien.id, bien])),
+    [biens]
+  )
   const {
     quittances,
     isLoaded: quittancesLoaded,
@@ -231,6 +237,11 @@ export function HomePageClient({ profile }: { profile: Profile }) {
         }}
         profile={profile}
         tenant={dialogState?.tenant ?? null}
+        bien={
+          (dialogState?.tenant.bienId &&
+            biensById.get(dialogState.tenant.bienId)) ||
+          null
+        }
         initialPeriodMonth={dialogState?.month}
         onLogged={refresh}
       />

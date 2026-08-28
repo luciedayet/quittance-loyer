@@ -12,6 +12,7 @@ type NewTenantInput = {
   firstQuittanceDate?: string | null
   lastQuittanceDate?: string | null
   location?: string | null
+  bienId: string
 }
 
 type TenantUpdateInput = Partial<NewTenantInput>
@@ -26,7 +27,7 @@ async function parseJsonOrThrow(response: Response) {
 
 async function fetchTenants(profileId: string): Promise<Tenant[]> {
   const response = await fetch(
-    `/api/tenants?profileId=${encodeURIComponent(profileId)}`,
+    `/api/tenants?profileId=${encodeURIComponent(profileId)}`
   )
   const data = await parseJsonOrThrow(response)
   return data.tenants as Tenant[]
@@ -70,7 +71,7 @@ export function useTenants(profileId: string) {
       setTenants((current) => [tenant, ...current])
       return tenant
     },
-    [profileId],
+    [profileId]
   )
 
   const updateTenant = useCallback(
@@ -83,12 +84,12 @@ export function useTenants(profileId: string) {
       const tenant = (await parseJsonOrThrow(response)) as Tenant
       setTenants((current) =>
         current.map((existing) =>
-          existing.id === id ? { ...existing, ...tenant } : existing,
-        ),
+          existing.id === id ? { ...existing, ...tenant } : existing
+        )
       )
       return tenant
     },
-    [],
+    []
   )
 
   const removeTenant = useCallback(async (id: string) => {

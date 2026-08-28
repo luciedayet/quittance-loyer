@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import type { Bien } from "@/lib/biens"
 import type { Profile } from "@/lib/profiles"
 import { formatEuros, periodFromMonth } from "@/lib/quittance"
 import type { RentChange, Tenant, TenantCivility } from "@/lib/tenants"
@@ -40,12 +41,14 @@ type TenantEditViewProps = {
   profile: Profile
   tenant: Tenant
   availableLocations: string[]
+  biens: Bien[]
 }
 
 export function TenantEditView({
   profile,
   tenant: initialTenant,
   availableLocations,
+  biens,
 }: TenantEditViewProps) {
   const router = useRouter()
   const [tenant] = useState(initialTenant)
@@ -64,6 +67,7 @@ export function TenantEditView({
     tenant.lastQuittanceDate ?? ""
   )
   const [location, setLocation] = useState(tenant.location ?? "")
+  const [bienId, setBienId] = useState(tenant.bienId ?? "")
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -100,6 +104,10 @@ export function TenantEditView({
       setError("Les charges doivent être un montant positif ou nul.")
       return
     }
+    if (!bienId) {
+      setError("Le bien est requis.")
+      return
+    }
 
     setIsSaving(true)
     setError(null)
@@ -117,6 +125,7 @@ export function TenantEditView({
           firstQuittanceDate: firstQuittanceDate || null,
           lastQuittanceDate: lastQuittanceDate || null,
           location: location.trim() || null,
+          bienId,
         }),
       })
       const data = await response.json().catch(() => null)
@@ -279,6 +288,25 @@ export function TenantEditView({
                   placeholder="50,00"
                 />
               </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-bien">Bien</Label>
+              <Select
+                value={bienId}
+                onValueChange={(value) => setBienId(value ?? "")}
+              >
+                <SelectTrigger id="edit-bien" className="w-full">
+                  <SelectValue placeholder="Choisir un bien" />
+                </SelectTrigger>
+                <SelectContent>
+                  {biens.map((bien) => (
+                    <SelectItem key={bien.id} value={bien.id}>
+                      {bien.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-2">

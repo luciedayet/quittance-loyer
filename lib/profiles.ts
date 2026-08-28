@@ -4,7 +4,6 @@ export type Profile = {
   managerName: string
   sciAddress: string[]
   city: string
-  property: { shortAddress?: string; lines: string[] }
   signatureSrc: string | null
 }
 

@@ -42,11 +42,8 @@ export default async function Page() {
                 <CardDescription>{profile.city}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {profile.property.lines[0]}
-                </p>
-                <p className="mt-3 text-sm font-medium text-primary">
-                  Gérer les locataires →
+                <p className="text-sm font-medium text-primary">
+                  Gérer la SCI →
                 </p>
               </CardContent>
             </Card>
