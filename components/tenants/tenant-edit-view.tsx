@@ -54,12 +54,14 @@ export function TenantEditView({
   const [civility, setCivility] = useState<TenantCivility>(tenant.civility)
   const [name, setName] = useState(tenant.name)
   const [rentAmount, setRentAmount] = useState(String(tenant.rentAmount))
-  const [chargesAmount, setChargesAmount] = useState(String(tenant.chargesAmount))
+  const [chargesAmount, setChargesAmount] = useState(
+    String(tenant.chargesAmount)
+  )
   const [firstQuittanceDate, setFirstQuittanceDate] = useState(
-    tenant.firstQuittanceDate ?? "",
+    tenant.firstQuittanceDate ?? ""
   )
   const [lastQuittanceDate, setLastQuittanceDate] = useState(
-    tenant.lastQuittanceDate ?? "",
+    tenant.lastQuittanceDate ?? ""
   )
   const [location, setLocation] = useState(tenant.location ?? "")
   const [error, setError] = useState<string | null>(null)
@@ -68,19 +70,13 @@ export function TenantEditView({
 
   // --- augmentations ---
   const [rentHistory, setRentHistory] = useState<RentChange[]>(
-    tenant.rentHistory,
+    tenant.rentHistory
   )
   const [newEffectiveMonth, setNewEffectiveMonth] = useState("")
   const [newRentAmount, setNewRentAmount] = useState("")
   const [newChargesAmount, setNewChargesAmount] = useState("")
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [isSavingHistory, setIsSavingHistory] = useState(false)
-
-  // --- accès locataire ---
-  const [email, setEmail] = useState(tenant.email ?? "")
-  const [inviteCode, setInviteCode] = useState<string | null>(null)
-  const [inviteError, setInviteError] = useState<string | null>(null)
-  const [isInviting, setIsInviting] = useState(false)
 
   // --- suppression ---
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -92,9 +88,18 @@ export function TenantEditView({
     const rent = Number.parseFloat(rentAmount.replace(",", "."))
     const charges = Number.parseFloat(chargesAmount.replace(",", "."))
 
-    if (!name.trim()) { setError("Le nom du locataire est requis."); return }
-    if (!Number.isFinite(rent) || rent <= 0) { setError("Le loyer doit être un montant positif."); return }
-    if (!Number.isFinite(charges) || charges < 0) { setError("Les charges doivent être un montant positif ou nul."); return }
+    if (!name.trim()) {
+      setError("Le nom du locataire est requis.")
+      return
+    }
+    if (!Number.isFinite(rent) || rent <= 0) {
+      setError("Le loyer doit être un montant positif.")
+      return
+    }
+    if (!Number.isFinite(charges) || charges < 0) {
+      setError("Les charges doivent être un montant positif ou nul.")
+      return
+    }
 
     setIsSaving(true)
     setError(null)
@@ -115,11 +120,16 @@ export function TenantEditView({
         }),
       })
       const data = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(data?.error ?? "Erreur lors de l'enregistrement.")
+      if (!response.ok)
+        throw new Error(data?.error ?? "Erreur lors de l'enregistrement.")
       setSaved(true)
       router.refresh()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Erreur lors de l'enregistrement.")
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Erreur lors de l'enregistrement."
+      )
     } finally {
       setIsSaving(false)
     }
@@ -135,10 +145,15 @@ export function TenantEditView({
         body: JSON.stringify({ rentHistory: nextHistory }),
       })
       const data = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(data?.error ?? "Erreur lors de la mise à jour.")
+      if (!response.ok)
+        throw new Error(data?.error ?? "Erreur lors de la mise à jour.")
       setRentHistory(nextHistory)
     } catch (cause) {
-      setHistoryError(cause instanceof Error ? cause.message : "Erreur lors de la mise à jour.")
+      setHistoryError(
+        cause instanceof Error
+          ? cause.message
+          : "Erreur lors de la mise à jour."
+      )
     } finally {
       setIsSavingHistory(false)
     }
@@ -147,9 +162,20 @@ export function TenantEditView({
   async function handleAddRentChange() {
     const rent = Number.parseFloat(newRentAmount.replace(",", "."))
     const charges = Number.parseFloat(newChargesAmount.replace(",", "."))
-    if (!newEffectiveMonth) { setHistoryError("Le mois d'effet est requis."); return }
-    if (!Number.isFinite(rent) || rent <= 0) { setHistoryError("Le nouveau loyer doit être un montant positif."); return }
-    if (!Number.isFinite(charges) || charges < 0) { setHistoryError("Les nouvelles charges doivent être un montant positif ou nul."); return }
+    if (!newEffectiveMonth) {
+      setHistoryError("Le mois d'effet est requis.")
+      return
+    }
+    if (!Number.isFinite(rent) || rent <= 0) {
+      setHistoryError("Le nouveau loyer doit être un montant positif.")
+      return
+    }
+    if (!Number.isFinite(charges) || charges < 0) {
+      setHistoryError(
+        "Les nouvelles charges doivent être un montant positif ou nul."
+      )
+      return
+    }
 
     const entry: RentChange = {
       id: crypto.randomUUID(),
@@ -167,32 +193,18 @@ export function TenantEditView({
     setIsDeleting(true)
     setDeleteError(null)
     try {
-      const response = await fetch(`/api/tenants/${tenant.id}`, { method: "DELETE" })
+      const response = await fetch(`/api/tenants/${tenant.id}`, {
+        method: "DELETE",
+      })
       if (!response.ok) throw new Error("Erreur lors de la suppression.")
       router.push(`/${profile.id}`)
     } catch (cause) {
-      setDeleteError(cause instanceof Error ? cause.message : "Erreur lors de la suppression.")
+      setDeleteError(
+        cause instanceof Error
+          ? cause.message
+          : "Erreur lors de la suppression."
+      )
       setIsDeleting(false)
-    }
-  }
-
-  async function handleInvite() {
-    if (!email.trim()) return
-    setIsInviting(true)
-    setInviteError(null)
-    try {
-      const response = await fetch(`/api/tenants/${tenant.id}/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      })
-      const data = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(data?.error ?? "Erreur lors de l'invitation.")
-      setInviteCode(data.verificationCode as string)
-    } catch (cause) {
-      setInviteError(cause instanceof Error ? cause.message : "Erreur lors de l'invitation.")
-    } finally {
-      setIsInviting(false)
     }
   }
 
@@ -287,7 +299,9 @@ export function TenantEditView({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="edit-first-quittance">Date d&apos;arrivée</Label>
+                <Label htmlFor="edit-first-quittance">
+                  Date d&apos;arrivée
+                </Label>
                 <Input
                   id="edit-first-quittance"
                   type="date"
@@ -308,7 +322,9 @@ export function TenantEditView({
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             {saved ? (
-              <p className="text-sm text-primary">Modifications enregistrées.</p>
+              <p className="text-sm text-primary">
+                Modifications enregistrées.
+              </p>
             ) : null}
 
             <div>
@@ -325,8 +341,9 @@ export function TenantEditView({
         <CardHeader>
           <CardTitle>Augmentations de loyer</CardTitle>
           <CardDescription>
-            Le loyer et les charges de base s&apos;appliquent tant qu&apos;aucune
-            augmentation n&apos;est enregistrée pour une période donnée.
+            Le loyer et les charges de base s&apos;appliquent tant
+            qu&apos;aucune augmentation n&apos;est enregistrée pour une période
+            donnée.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -353,12 +370,14 @@ export function TenantEditView({
                       disabled={isSavingHistory}
                       onClick={() =>
                         persistRentHistory(
-                          rentHistory.filter((e) => e.id !== entry.id),
+                          rentHistory.filter((e) => e.id !== entry.id)
                         )
                       }
                     >
                       <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                      <span className="sr-only">Supprimer cette augmentation</span>
+                      <span className="sr-only">
+                        Supprimer cette augmentation
+                      </span>
                     </Button>
                   </li>
                 ))}
@@ -408,7 +427,9 @@ export function TenantEditView({
               disabled={isSavingHistory}
               onClick={handleAddRentChange}
             >
-              {isSavingHistory ? "Enregistrement..." : "Ajouter une augmentation"}
+              {isSavingHistory
+                ? "Enregistrement..."
+                : "Ajouter une augmentation"}
             </Button>
           </div>
         </CardContent>
@@ -419,11 +440,14 @@ export function TenantEditView({
         <CardHeader>
           <CardTitle className="text-destructive">Zone dangereuse</CardTitle>
           <CardDescription>
-            La suppression est définitive et entraîne la suppression de toutes les quittances associées.
+            La suppression est définitive et entraîne la suppression de toutes
+            les quittances associées.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {deleteError ? <p className="mb-3 text-sm text-destructive">{deleteError}</p> : null}
+          {deleteError ? (
+            <p className="mb-3 text-sm text-destructive">{deleteError}</p>
+          ) : null}
           <Button
             type="button"
             variant="destructive"
@@ -437,9 +461,12 @@ export function TenantEditView({
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Supprimer {tenant.civility} {tenant.name} ?</DialogTitle>
+            <DialogTitle>
+              Supprimer {tenant.civility} {tenant.name} ?
+            </DialogTitle>
             <DialogDescription>
-              Cette action est irréversible. Elle supprimera définitivement le locataire{" "}
+              Cette action est irréversible. Elle supprimera définitivement le
+              locataire{" "}
               <span className="font-medium text-foreground">
                 {tenant.civility} {tenant.name}
               </span>{" "}
@@ -466,62 +493,6 @@ export function TenantEditView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Accès locataire */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Accès locataire</CardTitle>
-          <CardDescription>
-            {tenant.hasAccount
-              ? "Compte activé : le locataire peut consulter ses quittances."
-              : tenant.verificationCode
-                ? "Invitation envoyée, en attente d'activation."
-                : "Pas encore invité."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="edit-email">Email du locataire</Label>
-            <Input
-              id="edit-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="locataire@exemple.fr"
-            />
-          </div>
-
-          {inviteCode ? (
-            <p className="rounded-2xl bg-muted/50 p-3 text-sm">
-              Code à transmettre au locataire :{" "}
-              <span className="font-mono font-medium">{inviteCode}</span>
-              <br />
-              <span className="text-muted-foreground">
-                Ce code ne s&apos;affichera qu&apos;une fois ici.
-              </span>
-            </p>
-          ) : null}
-
-          {inviteError ? (
-            <p className="text-sm text-destructive">{inviteError}</p>
-          ) : null}
-
-          <div>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!email.trim() || isInviting}
-              onClick={handleInvite}
-            >
-              {isInviting
-                ? "Génération..."
-                : tenant.hasAccount || tenant.verificationCode
-                  ? "Générer un nouveau code d'activation"
-                  : "Générer un code d'activation"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
