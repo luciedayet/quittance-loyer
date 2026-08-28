@@ -151,7 +151,16 @@ export function QuittanceDocument({ data }: QuittanceDocumentProps) {
         </View>
 
         <Text style={styles.paragraph}>
-          Je soussigné {profile.managerName}, gérant de la {profile.sciName}{" "}
+          {profile.isCompany ? (
+            <>
+              Je soussigné {profile.managerName}, gérant de la{" "}
+              {profile.sciName}{" "}
+            </>
+          ) : (
+            <>
+              Je soussigné {profile.firstName} {profile.sciName}{" "}
+            </>
+          )}
           propriétaire du logement désigné ci-dessus, déclare avoir reçu de{" "}
           {data.tenantHonorific} {tenant.name}, la somme de {data.amountInWords}{" "}
           / {data.totalFormatted} euros, au titre du paiement du loyer et des

@@ -7,6 +7,8 @@ import {
   updatePage,
 } from "./client"
 import {
+  checkboxProperty,
+  getCheckbox,
   getRichText,
   getTitle,
   richTextChunkedProperty,
@@ -40,10 +42,12 @@ function mapPageToProfile(page: NotionPage): Profile {
   return {
     id: getRichText(properties["Slug"]),
     sciName: getTitle(properties["Nom SCI"]),
+    firstName: getRichText(properties["Prénom"]),
     managerName: getRichText(properties["Gerant"]),
     sciAddress: toLines(getRichText(properties["Adresse SCI"])),
     city: getRichText(properties["Ville"]),
     signatureSrc: signaturePath || null,
+    isCompany: getCheckbox(properties["Est une SCI"]),
   }
 }
 
@@ -113,6 +117,7 @@ export async function createProfile(sciName: string): Promise<Profile> {
     properties: {
       "Nom SCI": titleProperty(sciName),
       Slug: richTextProperty(slug),
+      "Est une SCI": checkboxProperty(true),
     },
   })
   return mapPageToProfile(page)
@@ -154,10 +159,12 @@ export async function getProfilesWithPageIds(): Promise<
 
 export type ProfileUpdateInput = Partial<{
   sciName: string
+  firstName: string
   managerName: string
   city: string
   sciAddress: string[]
   signatureSrc: string
+  isCompany: boolean
 }>
 
 export async function updateProfile(
@@ -174,8 +181,14 @@ export async function updateProfile(
   if (updates.sciName !== undefined) {
     properties["Nom SCI"] = titleProperty(updates.sciName)
   }
+  if (updates.firstName !== undefined) {
+    properties["Prénom"] = richTextProperty(updates.firstName)
+  }
   if (updates.managerName !== undefined) {
     properties["Gerant"] = richTextProperty(updates.managerName)
+  }
+  if (updates.isCompany !== undefined) {
+    properties["Est une SCI"] = checkboxProperty(updates.isCompany)
   }
   if (updates.city !== undefined) {
     properties["Ville"] = richTextProperty(updates.city)

@@ -3,47 +3,23 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { buttonVariants } from "@/components/ui/button"
-import type { Profile } from "@/lib/profiles"
 import { cn } from "@/lib/utils"
-
-type DashboardShellProps = {
-  profile: Profile
-  /** Masque le lien retour vers la liste des bailleurs (impersonation admin). */
-  hideBackLink?: boolean
-  children: React.ReactNode
-}
 
 const SECTIONS = [
   { href: "", label: "Accueil" },
-  { href: "/biens", label: "Biens" },
+  { href: "/bailleurs", label: "Bailleurs" },
   { href: "/locataires", label: "Locataires" },
-  { href: "/quittances", label: "Quittances" },
-  { href: "/acces", label: "Accès" },
-  { href: "/profile", label: "Profil" },
 ]
 
-/** Bandeau de navigation partagé entre les pages Accueil/Biens/Locataires/Quittances/Accès/Profil d'un bailleur. */
-export function DashboardShell({
-  profile,
-  hideBackLink = false,
-  children,
-}: DashboardShellProps) {
+/** Bandeau de navigation partagé entre les pages Accueil/Bailleurs/Locataires de l'administration. */
+export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const base = `/${profile.id}`
+  const base = "/admin"
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
       <div className="space-y-3">
-        {hideBackLink ? null : (
-          <Link
-            href="/"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-          >
-            ← Retour aux bailleurs
-          </Link>
-        )}
-        <h1 className="font-heading text-2xl font-medium">Espace bailleur</h1>
+        <h1 className="font-heading text-2xl font-medium">Administration</h1>
 
         <nav className="flex items-center gap-1 self-start overflow-x-auto rounded-2xl bg-muted p-1 text-sm">
           {SECTIONS.map((section) => {

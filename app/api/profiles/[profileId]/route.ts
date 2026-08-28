@@ -25,7 +25,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const body = await request.json()
-  const { sciName, managerName, city, sciAddress } = body ?? {}
+  const { sciName, firstName, managerName, city, sciAddress, isCompany } =
+    body ?? {}
 
   const updates: Parameters<typeof updateProfile>[1] = {}
 
@@ -36,8 +37,25 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     updates.sciName = sciName.trim()
   }
 
+  if (isCompany !== undefined) {
+    if (typeof isCompany !== "boolean") {
+      return NextResponse.json(
+        { error: "Valeur 'Est une SCI' invalide." },
+        { status: 400 }
+      )
+    }
+    updates.isCompany = isCompany
+  }
+
+  if (firstName !== undefined) {
+    if (typeof firstName !== "string") {
+      return NextResponse.json({ error: "Prénom invalide." }, { status: 400 })
+    }
+    updates.firstName = firstName.trim()
+  }
+
   if (managerName !== undefined) {
-    if (typeof managerName !== "string" || !managerName.trim()) {
+    if (typeof managerName !== "string") {
       return NextResponse.json(
         { error: "Nom du responsable invalide." },
         { status: 400 }

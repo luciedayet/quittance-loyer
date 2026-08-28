@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SignaturePad } from "@/components/ui/signature-pad"
@@ -36,7 +37,9 @@ export function ProfileSettingsView({
 }: ProfileSettingsViewProps) {
   const [profile, setProfile] = useState(initialProfile)
   const [sciName, setSciName] = useState(profile.sciName)
+  const [firstName, setFirstName] = useState(profile.firstName)
   const [managerName, setManagerName] = useState(profile.managerName)
+  const [isCompany, setIsCompany] = useState(profile.isCompany)
   const [city, setCity] = useState(profile.city)
   const [sciAddress, setSciAddress] = useState(linesToText(profile.sciAddress))
   const [error, setError] = useState<string | null>(null)
@@ -104,7 +107,7 @@ export function ProfileSettingsView({
       setError("Le nom est requis.")
       return
     }
-    if (!managerName.trim()) {
+    if (isCompany && !managerName.trim()) {
       setError("Le nom du responsable est requis.")
       return
     }
@@ -127,7 +130,9 @@ export function ProfileSettingsView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sciName: sciName.trim(),
-          managerName: managerName.trim(),
+          firstName: isCompany ? "" : firstName.trim(),
+          managerName: isCompany ? managerName.trim() : "",
+          isCompany,
           city: city.trim(),
           sciAddress: addressLines,
         }),
@@ -156,12 +161,21 @@ export function ProfileSettingsView({
           <CardTitle>Informations</CardTitle>
           <CardDescription>
             Ces informations sont utilisées sur les quittances générées.
-            L&apos;adresse des biens loués se gère désormais dans l&apos;onglet
-            Biens.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <form className="grid gap-4" onSubmit={handleSubmit}>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="profile-is-company"
+                checked={isCompany}
+                onCheckedChange={setIsCompany}
+              />
+              <Label htmlFor="profile-is-company" className="font-normal">
+                Je suis une SCI ou une société
+              </Label>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="profile-sci-name">Nom</Label>
@@ -171,14 +185,25 @@ export function ProfileSettingsView({
                   onChange={(event) => setSciName(event.target.value)}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-manager-name">Responsable</Label>
-                <Input
-                  id="profile-manager-name"
-                  value={managerName}
-                  onChange={(event) => setManagerName(event.target.value)}
-                />
-              </div>
+              {isCompany ? (
+                <div className="grid gap-2">
+                  <Label htmlFor="profile-manager-name">Responsable</Label>
+                  <Input
+                    id="profile-manager-name"
+                    value={managerName}
+                    onChange={(event) => setManagerName(event.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <Label htmlFor="profile-first-name">Prénom</Label>
+                  <Input
+                    id="profile-first-name"
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid gap-2">

@@ -18,28 +18,34 @@ export function getNumber(property: NotionPropertyValue | undefined): number {
 }
 
 export function getSelect(
-  property: NotionPropertyValue | undefined,
+  property: NotionPropertyValue | undefined
 ): string | undefined {
   const select = property?.select as { name?: string } | null | undefined
   return select?.name
 }
 
 export function getDate(
-  property: NotionPropertyValue | undefined,
+  property: NotionPropertyValue | undefined
 ): string | undefined {
   const date = property?.date as { start?: string } | null | undefined
   return date?.start ?? undefined
 }
 
 export function getEmail(
-  property: NotionPropertyValue | undefined,
+  property: NotionPropertyValue | undefined
 ): string | null {
   const value = property?.email
   return typeof value === "string" && value ? value : null
 }
 
+export function getCheckbox(
+  property: NotionPropertyValue | undefined
+): boolean {
+  return property?.checkbox === true
+}
+
 export function getRelationIds(
-  property: NotionPropertyValue | undefined,
+  property: NotionPropertyValue | undefined
 ): string[] {
   const items = (property?.relation as { id: string }[] | undefined) ?? []
   return items.map((item) => item.id)
@@ -81,4 +87,8 @@ export function relationProperty(pageIds: string[]): NotionPropertyValue {
 
 export function dateProperty(value: string | null): NotionPropertyValue {
   return { date: value ? { start: value } : null }
+}
+
+export function checkboxProperty(value: boolean): NotionPropertyValue {
+  return { checkbox: value }
 }
