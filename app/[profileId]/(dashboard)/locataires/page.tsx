@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation"
 
-import { HomePageClient } from "@/components/tenants/home-page-client"
+import { TenantsBoard } from "@/components/tenants/tenants-board"
 import { getSession } from "@/lib/auth/session"
 import { getProfileById } from "@/lib/profiles"
 
 export const dynamic = "force-dynamic"
 
-type HomePageProps = {
+type LocatairesPageProps = {
   params: Promise<{ profileId: string }>
 }
 
-export default async function HomePage({ params }: HomePageProps) {
+export default async function LocatairesPage({ params }: LocatairesPageProps) {
   const { profileId } = await params
   const session = await getSession()
   if (!session) notFound()
@@ -20,7 +20,10 @@ export default async function HomePage({ params }: HomePageProps) {
   }
 
   const profile = await getProfileById(profileId)
-  if (!profile) notFound()
 
-  return <HomePageClient profile={profile} />
+  if (!profile) {
+    notFound()
+  }
+
+  return <TenantsBoard profile={profile} />
 }

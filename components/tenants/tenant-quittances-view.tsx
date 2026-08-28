@@ -30,6 +30,7 @@ import {
   periodFromMonth,
   todayIsoDate,
 } from "@/lib/quittance"
+import { profileMissingFields } from "@/lib/quittances-status"
 import { effectiveRateAt, type Tenant } from "@/lib/tenants"
 import { cn } from "@/lib/utils"
 
@@ -38,17 +39,6 @@ type TenantQuittancesViewProps = {
   tenant: Tenant
   initialQuittances: QuittanceRecord[]
   readOnly?: boolean
-}
-
-function profileMissingFields(profile: Profile): string[] {
-  const missing: string[] = []
-  if (!profile.sciName.trim()) missing.push("Nom de la SCI")
-  if (!profile.managerName.trim()) missing.push("Nom du gérant")
-  if (!profile.city.trim()) missing.push("Ville")
-  if (profile.sciAddress.length === 0) missing.push("Adresse de la SCI")
-  if (profile.property.lines.length === 0) missing.push("Adresse du bien loué")
-  if (!profile.signatureSrc) missing.push("Signature")
-  return missing
 }
 
 function periodLabel(periodMonth: string): string {
@@ -98,7 +88,7 @@ export function TenantQuittancesView({
       profile,
       tenant,
       quittance.paymentDate,
-      quittance.periodMonth,
+      quittance.periodMonth
     )
     if (!fields) return
     setViewingId(quittance.id)
@@ -119,7 +109,7 @@ export function TenantQuittancesView({
       profile,
       tenant,
       quittance.paymentDate,
-      quittance.periodMonth,
+      quittance.periodMonth
     )
     if (!fields) return
     setDownloadingId(quittance.id)
@@ -132,7 +122,7 @@ export function TenantQuittancesView({
 
   const refreshQuittances = useCallback(async () => {
     const response = await fetch(
-      `/api/quittances?tenantId=${encodeURIComponent(tenant.id)}`,
+      `/api/quittances?tenantId=${encodeURIComponent(tenant.id)}`
     )
     if (!response.ok) return
     const data = await response.json()
@@ -142,7 +132,7 @@ export function TenantQuittancesView({
   async function handleDeleteQuittance(quittance: QuittanceRecord) {
     if (
       !window.confirm(
-        `Supprimer la quittance de ${periodLabel(quittance.periodMonth)} ?`,
+        `Supprimer la quittance de ${periodLabel(quittance.periodMonth)} ?`
       )
     ) {
       return
@@ -164,7 +154,7 @@ export function TenantQuittancesView({
       <div className="space-y-2">
         {readOnly ? null : (
           <Link
-            href={`/${profile.id}`}
+            href={`/${profile.id}/locataires`}
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
           >
             ← Retour aux locataires
@@ -177,9 +167,8 @@ export function TenantQuittancesView({
               {tenant.civility} {tenant.name}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {profile.sciName} · Loyer{" "}
-              {formatEuros(currentRate.rentAmount)} € + charges{" "}
-              {formatEuros(currentRate.chargesAmount)} €
+              {profile.sciName} · Loyer {formatEuros(currentRate.rentAmount)} €
+              + charges {formatEuros(currentRate.chargesAmount)} €
             </p>
           </div>
         </div>
@@ -229,13 +218,18 @@ export function TenantQuittancesView({
                     <div className="space-y-1">
                       <p className="font-medium">Profil SCI incomplet</p>
                       <p className="text-sm text-muted-foreground">
-                        Complétez votre profil SCI pour pouvoir générer des quittances.
+                        Complétez votre profil SCI pour pouvoir générer des
+                        quittances.
                       </p>
                     </div>
                     <ul className="rounded-2xl border border-border bg-muted/40 px-5 py-3 text-left text-sm">
                       {missing.map((field) => (
-                        <li key={field} className="flex items-center gap-2 py-0.5 text-muted-foreground">
-                          <span className="text-destructive">✗</span> {field} manquant
+                        <li
+                          key={field}
+                          className="flex items-center gap-2 py-0.5 text-muted-foreground"
+                        >
+                          <span className="text-destructive">✗</span> {field}{" "}
+                          manquant
                           {field === "Signature" ? "e" : ""}
                         </li>
                       ))}
@@ -283,7 +277,6 @@ export function TenantQuittancesView({
         initialPeriodMonth={selectedMonth}
         onLogged={refreshQuittances}
       />
-
     </div>
   )
 }
@@ -371,9 +364,9 @@ function QuittancesListCard({
   onDownload,
   onDelete,
 }: QuittancesListCardProps) {
-  const years = [...new Set(quittances.map((q) => q.periodMonth.slice(0, 4)))].sort(
-    (a, b) => b.localeCompare(a),
-  )
+  const years = [
+    ...new Set(quittances.map((q) => q.periodMonth.slice(0, 4))),
+  ].sort((a, b) => b.localeCompare(a))
 
   function QuittancesList({ list }: { list: QuittanceRecord[] }) {
     return (
@@ -429,7 +422,8 @@ function QuittancesListCard({
                 >
                   <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
                   <span className="sr-only">
-                    Supprimer la quittance de {periodLabel(quittance.periodMonth)}
+                    Supprimer la quittance de{" "}
+                    {periodLabel(quittance.periodMonth)}
                   </span>
                 </Button>
               )}

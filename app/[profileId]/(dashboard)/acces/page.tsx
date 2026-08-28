@@ -18,5 +18,5 @@ export default async function AccesPage({ params }: AccesPageProps) {
     notFound()
   }
 
-  return <AccesPageClient />
+  return <AccesPageClient profileId={profileId} />
 }

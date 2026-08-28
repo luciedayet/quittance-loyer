@@ -197,7 +197,7 @@ export function TenantEditView({
         method: "DELETE",
       })
       if (!response.ok) throw new Error("Erreur lors de la suppression.")
-      router.push(`/${profile.id}`)
+      router.push(`/${profile.id}/locataires`)
     } catch (cause) {
       setDeleteError(
         cause instanceof Error
@@ -212,7 +212,7 @@ export function TenantEditView({
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <div className="space-y-2">
         <Link
-          href={`/${profile.id}`}
+          href={`/${profile.id}/locataires`}
           className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
         >
           ← Retour aux locataires

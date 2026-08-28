@@ -1,13 +1,16 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { TenantAvatar } from "@/components/tenants/tenant-avatar"
 import type { Tenant } from "@/lib/tenants"
+import { cn } from "@/lib/utils"
 
 type TenantsAccessViewProps = {
+  profileId: string
   tenants: Tenant[]
   tenantsLoaded: boolean
   onUpdated: () => void
@@ -109,6 +112,7 @@ function TenantAccessCell({
 }
 
 export function TenantsAccessView({
+  profileId,
   tenants,
   tenantsLoaded,
   onUpdated,
@@ -126,11 +130,15 @@ export function TenantsAccessView({
         <div className="space-y-1">
           <p className="font-medium">Aucun locataire pour l&apos;instant</p>
           <p className="text-sm text-muted-foreground">
-            Ajoutez un locataire dans l&apos;onglet{" "}
-            <span className="font-medium text-foreground">Locataires</span> pour
-            gérer ses accès.
+            Ajoutez un locataire depuis la page Locataires pour gérer ses accès.
           </p>
         </div>
+        <Link
+          href={`/${profileId}/locataires`}
+          className={cn(buttonVariants({ variant: "default" }))}
+        >
+          Aller à Locataires
+        </Link>
       </div>
     )
   }

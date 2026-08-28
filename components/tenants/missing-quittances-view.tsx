@@ -16,16 +16,16 @@ import { useQuittancePdf } from "@/components/pdf/use-quittance-pdf"
 import { useProfileQuittances } from "@/hooks/use-profile-quittances"
 import type { QuittanceRecord } from "@/lib/notion/quittances"
 import {
-  arrivalStartMonth,
   buildQuittanceFields,
-  departureEndMonth,
   formatEuros,
   formatIsoDate,
-  monthFromDate,
-  monthsBetweenInclusive,
   periodFromMonth,
-  todayIsoDate,
 } from "@/lib/quittance"
+import {
+  computeMissingQuittances,
+  countMissingQuittances,
+  profileMissingFields,
+} from "@/lib/quittances-status"
 import type { Profile } from "@/lib/profiles"
 import type { Tenant } from "@/lib/tenants"
 import { cn } from "@/lib/utils"
@@ -36,24 +36,7 @@ type MissingQuittancesViewProps = {
   tenantsLoaded: boolean
 }
 
-type TenantMissing = {
-  tenant: Tenant
-  missingMonths: string[]
-  hasStartDate: boolean
-}
-
 type GroupBy = "tenant" | "month"
-
-function profileMissingFields(profile: Profile): string[] {
-  const missing: string[] = []
-  if (!profile.sciName.trim()) missing.push("Nom de la SCI")
-  if (!profile.managerName.trim()) missing.push("Nom du gérant")
-  if (!profile.city.trim()) missing.push("Ville")
-  if (profile.sciAddress.length === 0) missing.push("Adresse de la SCI")
-  if (profile.property.lines.length === 0) missing.push("Adresse du bien loué")
-  if (!profile.signatureSrc) missing.push("Signature")
-  return missing
-}
 
 function Badge({ count }: { count: number }) {
   return (
@@ -289,29 +272,10 @@ export function MissingQuittancesView({
     [refresh]
   )
 
-  const missingByTenant = useMemo<TenantMissing[]>(() => {
-    const currentMonth = monthFromDate(todayIsoDate())
-    const monthsByTenant = new Map<string, Set<string>>()
-    for (const q of quittances) {
-      const existing = monthsByTenant.get(q.tenantId) ?? new Set()
-      existing.add(q.periodMonth)
-      monthsByTenant.set(q.tenantId, existing)
-    }
-
-    return tenants.map((tenant) => {
-      if (!tenant.firstQuittanceDate) {
-        return { tenant, missingMonths: [], hasStartDate: false }
-      }
-      const startMonth = arrivalStartMonth(tenant.firstQuittanceDate)
-      const endMonth = departureEndMonth(tenant.lastQuittanceDate, currentMonth)
-      if (startMonth > endMonth)
-        return { tenant, missingMonths: [], hasStartDate: true }
-      const expectedMonths = monthsBetweenInclusive(startMonth, endMonth)
-      const existingMonths = monthsByTenant.get(tenant.id) ?? new Set()
-      const missingMonths = expectedMonths.filter((m) => !existingMonths.has(m))
-      return { tenant, missingMonths, hasStartDate: true }
-    })
-  }, [tenants, quittances])
+  const missingByTenant = useMemo(
+    () => computeMissingQuittances(tenants, quittances),
+    [tenants, quittances]
+  )
 
   const missingByMonth = useMemo<{ month: string; tenants: Tenant[] }[]>(() => {
     const map = new Map<string, Tenant[]>()
@@ -365,11 +329,7 @@ export function MissingQuittancesView({
   }, [tenants, quittances])
 
   const totalMissing = useMemo(
-    () =>
-      missingByTenant.reduce(
-        (sum, { missingMonths }) => sum + missingMonths.length,
-        0
-      ),
+    () => countMissingQuittances(missingByTenant),
     [missingByTenant]
   )
 
@@ -465,13 +425,15 @@ export function MissingQuittancesView({
               <div className="space-y-1">
                 <p className="font-medium">Aucune quittance à générer</p>
                 <p className="text-sm text-muted-foreground">
-                  Commencez par ajouter un locataire dans l&apos;onglet{" "}
-                  <span className="font-medium text-foreground">
-                    Locataires
-                  </span>
-                  .
+                  Commencez par ajouter un locataire depuis la page Locataires.
                 </p>
               </div>
+              <Link
+                href={`/${profile.id}/locataires`}
+                className={cn(buttonVariants({ variant: "default" }))}
+              >
+                Aller à Locataires
+              </Link>
             </div>
           ) : null}
 
