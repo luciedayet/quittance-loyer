@@ -184,7 +184,7 @@ export function AddTenantDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="tenant-first-quittance">
-                Première quittance
+                Date d&apos;arrivée
               </Label>
               <Input
                 id="tenant-first-quittance"
@@ -194,7 +194,9 @@ export function AddTenantDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="tenant-last-quittance">Dernière quittance</Label>
+              <Label htmlFor="tenant-last-quittance">
+                Date de départ (optionnelle)
+              </Label>
               <Input
                 id="tenant-last-quittance"
                 type="date"
