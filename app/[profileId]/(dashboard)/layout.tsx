@@ -36,7 +36,10 @@ export default async function DashboardLayout({
   return (
     <BiensProvider profileId={profile.id}>
       <TenantsProvider profileId={profile.id}>
-        <DashboardShell profile={profile} hideBackLink={isImpersonating}>
+        <DashboardShell
+          profile={profile}
+          hideBackLink={session.role === "bailleur" || isImpersonating}
+        >
           {children}
         </DashboardShell>
       </TenantsProvider>
