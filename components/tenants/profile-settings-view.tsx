@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 
-import { LogoutButton } from "@/components/auth/logout-button"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -102,11 +101,11 @@ export function ProfileSettingsView({
     const addressLines = textToLines(sciAddress)
 
     if (!sciName.trim()) {
-      setError("Le nom de la SCI est requis.")
+      setError("Le nom est requis.")
       return
     }
     if (!managerName.trim()) {
-      setError("Le nom du gérant est requis.")
+      setError("Le nom du responsable est requis.")
       return
     }
     if (!city.trim()) {
@@ -114,7 +113,7 @@ export function ProfileSettingsView({
       return
     }
     if (addressLines.length === 0) {
-      setError("L'adresse de la SCI est requise.")
+      setError("L'adresse est requise.")
       return
     }
 
@@ -135,9 +134,7 @@ export function ProfileSettingsView({
       })
       const data = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error(
-          data?.error ?? "Erreur lors de la mise à jour de la SCI."
-        )
+        throw new Error(data?.error ?? "Erreur lors de la mise à jour.")
       }
       setProfile(data as Profile)
       setSaved(true)
@@ -156,18 +153,18 @@ export function ProfileSettingsView({
     <div className="flex flex-col gap-8">
       <Card>
         <CardHeader>
-          <CardTitle>Informations de la SCI</CardTitle>
+          <CardTitle>Informations</CardTitle>
           <CardDescription>
-            Ces informations sont utilisées sur les quittances générées pour
-            cette SCI. L&apos;adresse des biens loués se gère désormais dans
-            l&apos;onglet Biens.
+            Ces informations sont utilisées sur les quittances générées.
+            L&apos;adresse des biens loués se gère désormais dans l&apos;onglet
+            Biens.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-6">
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="profile-sci-name">Nom de la SCI</Label>
+                <Label htmlFor="profile-sci-name">Nom</Label>
                 <Input
                   id="profile-sci-name"
                   value={sciName}
@@ -175,7 +172,7 @@ export function ProfileSettingsView({
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="profile-manager-name">Gérant</Label>
+                <Label htmlFor="profile-manager-name">Responsable</Label>
                 <Input
                   id="profile-manager-name"
                   value={managerName}
@@ -186,7 +183,7 @@ export function ProfileSettingsView({
 
             <div className="grid gap-2">
               <Label htmlFor="profile-sci-address">
-                Adresse de la SCI (une ligne par ligne d&apos;adresse)
+                Adresse (une ligne par ligne d&apos;adresse)
               </Label>
               <Textarea
                 id="profile-sci-address"
@@ -218,85 +215,75 @@ export function ProfileSettingsView({
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Signature</CardTitle>
-          <CardDescription>
-            Votre signature apparaîtra en bas des quittances générées.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {!showPad ? (
-            <>
-              {signatureSrc ? (
-                <div className="inline-block rounded-2xl border border-border bg-white p-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={signatureSrc}
-                    alt="Signature"
-                    className="max-h-[80px] max-w-[300px] object-contain"
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Aucune signature enregistrée.
-                </p>
-              )}
+          <div className="flex flex-col gap-4 border-t border-border pt-6">
+            <div>
+              <h3 className="font-heading text-sm font-medium">Signature</h3>
+              <p className="text-sm text-muted-foreground">
+                Votre signature apparaîtra en bas des quittances générées.
+              </p>
+            </div>
 
-              {signatureError ? (
-                <p className="text-sm text-destructive">{signatureError}</p>
-              ) : null}
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setSignatureError(null)
-                    setShowPad(true)
-                  }}
-                >
-                  {signatureSrc
-                    ? "Redessiner la signature"
-                    : "Dessiner la signature"}
-                </Button>
+            {!showPad ? (
+              <>
                 {signatureSrc ? (
+                  <div className="inline-block rounded-2xl border border-border bg-white p-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={signatureSrc}
+                      alt="Signature"
+                      className="max-h-[80px] max-w-[300px] object-contain"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Aucune signature enregistrée.
+                  </p>
+                )}
+
+                {signatureError ? (
+                  <p className="text-sm text-destructive">{signatureError}</p>
+                ) : null}
+
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
-                    variant="ghost"
-                    className="text-destructive"
-                    disabled={isSavingSignature}
-                    onClick={handleRemoveSignature}
+                    variant="outline"
+                    onClick={() => {
+                      setSignatureError(null)
+                      setShowPad(true)
+                    }}
                   >
-                    {isSavingSignature ? "Suppression…" : "Supprimer"}
+                    {signatureSrc
+                      ? "Redessiner la signature"
+                      : "Dessiner la signature"}
                   </Button>
+                  {signatureSrc ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-destructive"
+                      disabled={isSavingSignature}
+                      onClick={handleRemoveSignature}
+                    >
+                      {isSavingSignature ? "Suppression…" : "Supprimer"}
+                    </Button>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <>
+                {signatureError ? (
+                  <p className="text-sm text-destructive">{signatureError}</p>
                 ) : null}
-              </div>
-            </>
-          ) : (
-            <>
-              {signatureError ? (
-                <p className="text-sm text-destructive">{signatureError}</p>
-              ) : null}
-              <SignaturePad
-                onSave={handleSaveSignature}
-                onCancel={() => setShowPad(false)}
-                isSaving={isSavingSignature}
-              />
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Compte</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LogoutButton />
+                <SignaturePad
+                  onSave={handleSaveSignature}
+                  onCancel={() => setShowPad(false)}
+                  isSaving={isSavingSignature}
+                />
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

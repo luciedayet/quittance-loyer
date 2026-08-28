@@ -16,7 +16,7 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   const { sciName } = body ?? {}
 
   if (typeof sciName !== "string" || !sciName.trim()) {
-    return NextResponse.json({ error: "Nom de SCI invalide." }, { status: 400 })
+    return NextResponse.json({ error: "Nom invalide." }, { status: 400 })
   }
 
   try {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }

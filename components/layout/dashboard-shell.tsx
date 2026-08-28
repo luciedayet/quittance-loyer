@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 type DashboardShellProps = {
   profile: Profile
-  /** Masque le lien retour vers la liste des SCI (impersonation admin). */
+  /** Masque le lien retour vers la liste des bailleurs (impersonation admin). */
   hideBackLink?: boolean
   children: React.ReactNode
 }
@@ -23,7 +23,7 @@ const SECTIONS = [
   { href: "/profile", label: "Profil" },
 ]
 
-/** Bandeau de navigation partagé entre les pages Accueil/Biens/Locataires/Quittances/Accès/Profil d'une SCI. */
+/** Bandeau de navigation partagé entre les pages Accueil/Biens/Locataires/Quittances/Accès/Profil d'un bailleur. */
 export function DashboardShell({
   profile,
   hideBackLink = false,
@@ -40,7 +40,7 @@ export function DashboardShell({
             href="/"
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
           >
-            ← Retour aux SCI
+            ← Retour aux bailleurs
           </Link>
         )}
         <h1 className="font-heading text-2xl font-medium">{profile.sciName}</h1>

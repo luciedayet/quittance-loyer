@@ -18,11 +18,14 @@ export async function POST(request: NextRequest) {
 
   if (role === "bailleur") {
     if (typeof profileId !== "string" || !profileId) {
-      return NextResponse.json({ error: "SCI invalide." }, { status: 400 })
+      return NextResponse.json({ error: "Bailleur invalide." }, { status: 400 })
     }
     const profilePageId = await getProfilePageId(profileId)
     if (!profilePageId) {
-      return NextResponse.json({ error: "SCI introuvable." }, { status: 404 })
+      return NextResponse.json(
+        { error: "Bailleur introuvable." },
+        { status: 404 }
+      )
     }
     await createImpersonationCookie({ role: "bailleur", profileId })
     return NextResponse.json({ ok: true })
@@ -36,8 +39,8 @@ export async function POST(request: NextRequest) {
       !tenantId
     ) {
       return NextResponse.json(
-        { error: "SCI ou locataire invalide." },
-        { status: 400 },
+        { error: "Bailleur ou locataire invalide." },
+        { status: 400 }
       )
     }
     const [profilePageId, tenantOwnerPageId] = await Promise.all([
@@ -50,8 +53,8 @@ export async function POST(request: NextRequest) {
       profilePageId !== tenantOwnerPageId
     ) {
       return NextResponse.json(
-        { error: "Locataire introuvable pour cette SCI." },
-        { status: 404 },
+        { error: "Locataire introuvable pour ce bailleur." },
+        { status: 404 }
       )
     }
     await createImpersonationCookie({ role: "locataire", profileId, tenantId })

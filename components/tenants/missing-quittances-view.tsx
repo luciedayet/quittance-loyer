@@ -367,9 +367,9 @@ export function MissingQuittancesView({
           ⚙️
         </div>
         <div className="space-y-1">
-          <p className="font-medium">Profil SCI incomplet</p>
+          <p className="font-medium">Profil incomplet</p>
           <p className="text-sm text-muted-foreground">
-            Complétez votre profil SCI pour pouvoir générer des quittances.
+            Complétez votre profil pour pouvoir générer des quittances.
           </p>
         </div>
         <ul className="rounded-2xl border border-border bg-muted/40 px-5 py-3 text-left text-sm">

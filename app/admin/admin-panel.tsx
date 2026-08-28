@@ -100,12 +100,17 @@ function EmailModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Modèle d&apos;invitation</DialogTitle>
         </DialogHeader>
-        <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed text-foreground">
+        <pre className="rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-foreground">
           {template}
         </pre>
         <DialogFooter>
@@ -137,7 +142,12 @@ function CopyEmailButton({
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
-    const template = buildEmailTemplate({ email, firstName, activationCode, tenant })
+    const template = buildEmailTemplate({
+      email,
+      firstName,
+      activationCode,
+      tenant,
+    })
     await navigator.clipboard.writeText(template)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -167,7 +177,9 @@ function TenantInviteRow({
   const [email, setEmail] = useState(currentEmail ?? "")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [fresh, setFresh] = useState<{ email: string; code: string } | null>(null)
+  const [fresh, setFresh] = useState<{ email: string; code: string } | null>(
+    null
+  )
 
   const displayCode = fresh?.code ?? verificationCode
   const displayEmail = fresh?.email ?? currentEmail
@@ -250,7 +262,7 @@ function TenantInviteRow({
   )
 }
 
-// ─── SCI create form ──────────────────────────────────────────────────────────
+// ─── Bailleur create form ─────────────────────────────────────────────────────
 
 function CreateSciForm({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false)
@@ -282,7 +294,7 @@ function CreateSciForm({ onCreated }: { onCreated: () => void }) {
   if (!open) {
     return (
       <Button type="button" onClick={() => setOpen(true)}>
-        + Nouvelle SCI
+        + Nouveau bailleur
       </Button>
     )
   }
@@ -291,7 +303,7 @@ function CreateSciForm({ onCreated }: { onCreated: () => void }) {
     <div className="flex flex-wrap items-center gap-2">
       <Input
         autoFocus
-        placeholder="Nom de la SCI"
+        placeholder="Nom du bailleur"
         value={sciName}
         onChange={(e) => setSciName(e.target.value)}
         onKeyDown={(e) => {
@@ -308,7 +320,12 @@ function CreateSciForm({ onCreated }: { onCreated: () => void }) {
       >
         {loading ? "Création…" : "Créer"}
       </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen(false)}
+      >
         Annuler
       </Button>
       {error ? <span className="text-xs text-destructive">{error}</span> : null}
@@ -316,7 +333,7 @@ function CreateSciForm({ onCreated }: { onCreated: () => void }) {
   )
 }
 
-// ─── SCI delete button ────────────────────────────────────────────────────────
+// ─── Bailleur delete button ───────────────────────────────────────────────────
 
 function DeleteSciButton({
   profileId,
@@ -339,7 +356,9 @@ function DeleteSciButton({
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/profiles/${profileId}`, { method: "DELETE" })
+      const res = await fetch(`/api/profiles/${profileId}`, {
+        method: "DELETE",
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Erreur")
       onDeleted()
@@ -353,7 +372,10 @@ function DeleteSciButton({
 
   if (disabled) {
     return (
-      <span title={disabledReason} className="inline-flex cursor-not-allowed opacity-30">
+      <span
+        title={disabledReason}
+        className="inline-flex cursor-not-allowed opacity-30"
+      >
         <HugeiconsIcon icon={Delete02Icon} size={16} strokeWidth={2} />
       </span>
     )
@@ -364,7 +386,7 @@ function DeleteSciButton({
       <button
         type="button"
         title={`Supprimer ${sciName}`}
-        className="inline-flex text-destructive opacity-70 hover:opacity-100 transition-opacity"
+        className="inline-flex text-destructive opacity-70 transition-opacity hover:opacity-100"
         onClick={() => setConfirm(true)}
       >
         <HugeiconsIcon icon={Delete02Icon} size={16} strokeWidth={2} />
@@ -374,7 +396,9 @@ function DeleteSciButton({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-destructive">Supprimer «&nbsp;{sciName}&nbsp;» ?</span>
+      <span className="text-xs text-destructive">
+        Supprimer «&nbsp;{sciName}&nbsp;» ?
+      </span>
       <Button
         type="button"
         variant="destructive"
@@ -384,7 +408,12 @@ function DeleteSciButton({
       >
         {loading ? "…" : "Confirmer"}
       </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={() => setConfirm(false)}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setConfirm(false)}
+      >
         Annuler
       </Button>
       {error ? <span className="text-xs text-destructive">{error}</span> : null}
@@ -392,7 +421,7 @@ function DeleteSciButton({
   )
 }
 
-// ─── SCI invite row ──────────────────────────────────────────────────────────
+// ─── Bailleur invite row ──────────────────────────────────────────────────────
 
 function SciInviteRow({
   profileId,
@@ -408,14 +437,22 @@ function SciInviteRow({
   const [lastName, setLastName] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [fresh, setFresh] = useState<{ email: string; activationCode: string } | null>(null)
+  const [fresh, setFresh] = useState<{
+    email: string
+    activationCode: string
+  } | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
-  const pendingResult = fresh ?? (
-    existingBailleur && !existingBailleur.passwordHash && existingBailleur.activationCode
-      ? { email: existingBailleur.email, activationCode: existingBailleur.activationCode }
-      : null
-  )
+  const pendingResult =
+    fresh ??
+    (existingBailleur &&
+    !existingBailleur.passwordHash &&
+    existingBailleur.activationCode
+      ? {
+          email: existingBailleur.email,
+          activationCode: existingBailleur.activationCode,
+        }
+      : null)
 
   async function handleGenerate() {
     setLoading(true)
@@ -447,7 +484,9 @@ function SciInviteRow({
           <span className="size-1.5 rounded-full bg-current" />
           Inscrit
         </span>
-        <span className="text-xs text-muted-foreground">{existingBailleur.email}</span>
+        <span className="text-xs text-muted-foreground">
+          {existingBailleur.email}
+        </span>
       </div>
     )
   }
@@ -461,7 +500,9 @@ function SciInviteRow({
               <span className="size-1.5 rounded-full bg-current" />
               En attente
             </span>
-            <span className="text-xs text-muted-foreground">{pendingResult.email}</span>
+            <span className="text-xs text-muted-foreground">
+              {pendingResult.email}
+            </span>
           </div>
           <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs tracking-wider">
             {pendingResult.activationCode}
@@ -560,7 +601,7 @@ export function AdminPanel({
             </span>
           </TabsTab>
           <TabsTab value="scis">
-            SCIs
+            Bailleurs
             <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
               {profiles.length}
             </span>
@@ -573,9 +614,15 @@ export function AdminPanel({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Locataire</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">SCI</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Accès locataire</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Locataire
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Bailleur
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Accès locataire
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -584,11 +631,16 @@ export function AdminPanel({
                     ? (sciByPageId[tenant.profilePageId] ?? "–")
                     : "–"
                   return (
-                    <tr key={tenant.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                    <tr
+                      key={tenant.id}
+                      className="border-b border-border last:border-0 hover:bg-muted/20"
+                    >
                       <td className="px-4 py-3 font-medium">
                         {tenant.civility} {tenant.name}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{sciName}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {sciName}
+                      </td>
                       <td className="px-4 py-3">
                         <TenantInviteRow
                           tenantId={tenant.id}
@@ -605,7 +657,7 @@ export function AdminPanel({
           </div>
         </TabsPanel>
 
-        {/* ── SCIs ── */}
+        {/* ── Bailleurs ── */}
         <TabsPanel value="scis">
           <div className="flex flex-col gap-4">
             <div className="flex justify-end">
@@ -615,10 +667,18 @@ export function AdminPanel({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nom SCI</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Gérant</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Locataires</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Compte bailleur</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                      Nom
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                      Responsable
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                      Locataires
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                      Compte bailleur
+                    </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground"></th>
                   </tr>
                 </thead>
@@ -627,14 +687,23 @@ export function AdminPanel({
                     const count = tenantCountByProfileId[profile.id] ?? 0
                     const canDelete = count === 0
                     const pageId = profilePageIdBySlug[profile.id]
-                    const bailleur = pageId ? bailleurByProfilePageId[pageId] : undefined
+                    const bailleur = pageId
+                      ? bailleurByProfilePageId[pageId]
+                      : undefined
                     return (
-                      <tr key={profile.id} className="border-b border-border last:border-0 hover:bg-muted/20 align-top">
-                        <td className="px-4 py-3 font-medium">{profile.sciName}</td>
+                      <tr
+                        key={profile.id}
+                        className="border-b border-border align-top last:border-0 hover:bg-muted/20"
+                      >
+                        <td className="px-4 py-3 font-medium">
+                          {profile.sciName}
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {profile.managerName || "–"}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{count}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {count}
+                        </td>
                         <td className="px-4 py-3">
                           <SciInviteRow
                             profileId={profile.id}
@@ -647,7 +716,11 @@ export function AdminPanel({
                             profileId={profile.id}
                             sciName={profile.sciName}
                             disabled={!canDelete}
-                            disabledReason={!canDelete ? `${count} locataire(s) actif(s)` : undefined}
+                            disabledReason={
+                              !canDelete
+                                ? `${count} locataire(s) actif(s)`
+                                : undefined
+                            }
                             onDeleted={refresh}
                           />
                         </td>

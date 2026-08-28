@@ -20,12 +20,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Email invalide." }, { status: 400 })
   }
   if (typeof profileId !== "string" || !profileId) {
-    return NextResponse.json({ error: "SCI invalide." }, { status: 400 })
+    return NextResponse.json({ error: "Bailleur invalide." }, { status: 400 })
   }
 
   const profilePageId = await getProfilePageId(profileId)
   if (!profilePageId) {
-    return NextResponse.json({ error: "SCI introuvable." }, { status: 404 })
+    return NextResponse.json(
+      { error: "Bailleur introuvable." },
+      { status: 404 }
+    )
   }
 
   try {
@@ -33,13 +36,13 @@ export async function POST(request: NextRequest) {
       email,
       typeof firstName === "string" ? firstName : "",
       typeof lastName === "string" ? lastName : "",
-      profilePageId,
+      profilePageId
     )
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }

@@ -50,13 +50,13 @@ export function countMissingQuittances(
   return list.reduce((sum, { missingMonths }) => sum + missingMonths.length, 0)
 }
 
-/** Champs du profil SCI requis pour pouvoir générer des quittances. */
+/** Champs du profil requis pour pouvoir générer des quittances. */
 export function profileMissingFields(profile: Profile): string[] {
   const missing: string[] = []
-  if (!profile.sciName.trim()) missing.push("Nom de la SCI")
-  if (!profile.managerName.trim()) missing.push("Nom du gérant")
+  if (!profile.sciName.trim()) missing.push("Nom")
+  if (!profile.managerName.trim()) missing.push("Nom du responsable")
   if (!profile.city.trim()) missing.push("Ville")
-  if (profile.sciAddress.length === 0) missing.push("Adresse de la SCI")
+  if (profile.sciAddress.length === 0) missing.push("Adresse")
   if (!profile.signatureSrc) missing.push("Signature")
   return missing
 }

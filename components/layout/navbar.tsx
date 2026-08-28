@@ -20,12 +20,10 @@ export function Navbar({ role, impersonating = false }: NavbarProps) {
     <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-3">
         {impersonating ? (
-          <span className="font-heading text-sm font-medium">
-            Quittances de loyer
-          </span>
+          <span className="font-heading text-sm font-medium">Propriflow</span>
         ) : (
           <Link href="/" className="font-heading text-sm font-medium">
-            Quittances de loyer
+            Propriflow
           </Link>
         )}
         <div className="flex items-center gap-1">

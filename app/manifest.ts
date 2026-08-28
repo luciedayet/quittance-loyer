@@ -2,10 +2,9 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Quittances de loyer",
-    short_name: "Quittances",
-    description:
-      "Gérez vos locataires et générez des quittances de loyer pour vos SCI.",
+    name: "Propriflow",
+    short_name: "Propriflow",
+    description: "Gérez vos locataires et générez des quittances de loyer.",
     start_url: "/",
     scope: "/",
     display: "standalone",

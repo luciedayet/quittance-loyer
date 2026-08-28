@@ -105,7 +105,7 @@ export function ImpersonateDialog() {
       const data = await response.json().catch(() => null)
       if (!response.ok) {
         throw new Error(
-          data?.error ?? "Impossible de démarrer l'impersonation.",
+          data?.error ?? "Impossible de démarrer l'impersonation."
         )
       }
 
@@ -140,7 +140,7 @@ export function ImpersonateDialog() {
         <DialogHeader>
           <DialogTitle>Se connecter en tant que</DialogTitle>
           <DialogDescription>
-            Choisis une SCI (et un locataire) pour naviguer dans
+            Choisis un bailleur (et un locataire) pour naviguer dans
             l&apos;application comme si tu étais ce bailleur ou ce locataire.
           </DialogDescription>
         </DialogHeader>
@@ -154,7 +154,7 @@ export function ImpersonateDialog() {
                 "rounded-xl px-3 py-1 font-medium transition-colors",
                 mode === "bailleur"
                   ? "bg-background shadow-sm"
-                  : "text-muted-foreground",
+                  : "text-muted-foreground"
               )}
             >
               Bailleur
@@ -166,7 +166,7 @@ export function ImpersonateDialog() {
                 "rounded-xl px-3 py-1 font-medium transition-colors",
                 mode === "locataire"
                   ? "bg-background shadow-sm"
-                  : "text-muted-foreground",
+                  : "text-muted-foreground"
               )}
             >
               Locataire
@@ -174,12 +174,12 @@ export function ImpersonateDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="impersonate-profile">SCI</Label>
+            <Label htmlFor="impersonate-profile">Bailleur</Label>
             <Select value={profileId} onValueChange={handleProfileChange}>
               <SelectTrigger id="impersonate-profile" className="w-full">
                 <SelectValue
                   placeholder={
-                    profiles === null ? "Chargement…" : "Choisir une SCI"
+                    profiles === null ? "Chargement…" : "Choisir un bailleur"
                   }
                 />
               </SelectTrigger>
@@ -205,7 +205,7 @@ export function ImpersonateDialog() {
                   <SelectValue
                     placeholder={
                       !profileId
-                        ? "Choisir une SCI d'abord"
+                        ? "Choisir un bailleur d'abord"
                         : tenants === null
                           ? "Chargement…"
                           : "Choisir un locataire"

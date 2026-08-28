@@ -221,9 +221,9 @@ export function TenantQuittancesView({
                       ⚙️
                     </div>
                     <div className="space-y-1">
-                      <p className="font-medium">Profil SCI incomplet</p>
+                      <p className="font-medium">Profil incomplet</p>
                       <p className="text-sm text-muted-foreground">
-                        Complétez votre profil SCI pour pouvoir générer des
+                        Complétez votre profil pour pouvoir générer des
                         quittances.
                       </p>
                     </div>

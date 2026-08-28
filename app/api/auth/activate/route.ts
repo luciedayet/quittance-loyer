@@ -19,13 +19,13 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json(
       { error: "Champs requis manquants." },
-      { status: 400 },
+      { status: 400 }
     )
   }
   if (password.length < 8) {
     return NextResponse.json(
       { error: "Le mot de passe doit contenir au moins 8 caractères." },
-      { status: 400 },
+      { status: 400 }
     )
   }
 
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
         : undefined
       if (!profile) {
         return NextResponse.json(
-          { error: "Compte bailleur mal configuré : SCI introuvable." },
-          { status: 500 },
+          { error: "Compte bailleur mal configuré : profil introuvable." },
+          { status: 500 }
         )
       }
 
@@ -67,7 +67,10 @@ export async function POST(request: NextRequest) {
         email: user.email,
         profileId: profile.id,
       })
-      return NextResponse.json({ redirectTo: `/${profile.id}` }, { status: 201 })
+      return NextResponse.json(
+        { redirectTo: `/${profile.id}` },
+        { status: 201 }
+      )
     }
 
     const tenant = await getTenantAuthByEmail(email)
@@ -83,8 +86,8 @@ export async function POST(request: NextRequest) {
       const profile = await getProfileByPageId(tenant.profilePageId)
       if (!profile) {
         return NextResponse.json(
-          { error: "Compte locataire mal configuré : SCI introuvable." },
-          { status: 500 },
+          { error: "Compte locataire mal configuré : profil introuvable." },
+          { status: 500 }
         )
       }
 
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
       })
       return NextResponse.json(
         { redirectTo: `/${profile.id}/tenants/${tenant.id}` },
-        { status: 201 },
+        { status: 201 }
       )
     }
 
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }

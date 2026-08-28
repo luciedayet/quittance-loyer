@@ -31,10 +31,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   if (sciName !== undefined) {
     if (typeof sciName !== "string" || !sciName.trim()) {
-      return NextResponse.json(
-        { error: "Nom de SCI invalide." },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Nom invalide." }, { status: 400 })
     }
     updates.sciName = sciName.trim()
   }
@@ -42,7 +39,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (managerName !== undefined) {
     if (typeof managerName !== "string" || !managerName.trim()) {
       return NextResponse.json(
-        { error: "Nom du gérant invalide." },
+        { error: "Nom du responsable invalide." },
         { status: 400 }
       )
     }
@@ -58,10 +55,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   if (sciAddress !== undefined) {
     if (!isStringArray(sciAddress) || sciAddress.length === 0) {
-      return NextResponse.json(
-        { error: "Adresse de la SCI invalide." },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Adresse invalide." }, { status: 400 })
     }
     updates.sciAddress = sciAddress
   }
@@ -91,13 +85,13 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
   if (tenants.length > 0) {
     return NextResponse.json(
-      { error: "Cette SCI a des locataires. Supprimez-les d'abord." },
+      { error: "Ce bailleur a des locataires. Supprimez-les d'abord." },
       { status: 400 }
     )
   }
   if (quittances.length > 0) {
     return NextResponse.json(
-      { error: "Cette SCI a des quittances enregistrées." },
+      { error: "Ce bailleur a des quittances enregistrées." },
       { status: 400 }
     )
   }

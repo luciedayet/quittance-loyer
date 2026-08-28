@@ -42,9 +42,7 @@ export default async function Page() {
                 <CardDescription>{profile.city}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm font-medium text-primary">
-                  Gérer la SCI →
-                </p>
+                <p className="text-sm font-medium text-primary">Gérer →</p>
               </CardContent>
             </Card>
           </Link>

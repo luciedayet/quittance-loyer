@@ -120,11 +120,11 @@ export async function createProfile(sciName: string): Promise<Profile> {
 
 export async function removeProfile(profileId: string): Promise<void> {
   const pageId = await getProfilePageId(profileId)
-  if (!pageId) throw new Error("SCI introuvable.")
+  if (!pageId) throw new Error("Bailleur introuvable.")
   await archivePage(pageId)
 }
 
-/** Retourne un Map de pageId Notion → nom de la SCI, pour l'affichage admin. */
+/** Retourne un Map de pageId Notion → nom du bailleur, pour l'affichage admin. */
 export async function getProfileSciNameByPageId(): Promise<
   Map<string, string>
 > {

@@ -22,8 +22,8 @@ export default async function TenantQuittancesPage({
   const session = await getSession()
   if (!session) notFound()
 
-  // Vérifie que le locataire appartient bien à la SCI de l'URL (et pas
-  // seulement que le rôle correspond) pour éviter toute fuite entre SCI.
+  // Vérifie que le locataire appartient bien au bailleur de l'URL (et pas
+  // seulement que le rôle correspond) pour éviter toute fuite entre bailleurs.
   if (await assertCanViewTenant(session, tenantId)) notFound()
 
   const profile = await getProfileById(profileId)

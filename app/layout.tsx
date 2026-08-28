@@ -24,13 +24,12 @@ const fontMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Quittances de loyer",
-  description:
-    "Gérez vos locataires et générez des quittances de loyer pour vos SCI.",
+  title: "Propriflow",
+  description: "Gérez vos locataires et générez des quittances de loyer.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Quittances",
+    title: "Propriflow",
   },
 }
 
@@ -42,7 +41,7 @@ async function getImpersonationLabel(
   impersonation: ImpersonationPayload
 ): Promise<string> {
   const profile = await getProfileById(impersonation.profileId)
-  const sciName = profile?.sciName ?? "SCI inconnue"
+  const sciName = profile?.sciName ?? "bailleur inconnu"
 
   if (impersonation.role === "bailleur") {
     return `Vue admin : tu navigues en tant que bailleur de ${sciName}.`

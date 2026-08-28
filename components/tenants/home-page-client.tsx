@@ -183,7 +183,7 @@ export function HomePageClient({ profile }: { profile: Profile }) {
 
         {isLoaded && missingProfileFields.length > 0 ? (
           <TaskCard
-            title="Compléter le profil de la SCI"
+            title="Compléter le profil"
             description={`${missingProfileFields.join(", ")} manquant${
               missingProfileFields.length > 1 ? "s" : ""
             }.`}

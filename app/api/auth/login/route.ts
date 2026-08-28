@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   if (typeof email !== "string" || typeof password !== "string") {
     return NextResponse.json(
       { error: "Email et mot de passe requis." },
-      { status: 400 },
+      { status: 400 }
     )
   }
 
@@ -28,7 +28,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: NOT_ACTIVATED }, { status: 401 })
       }
       if (!(await verifyPassword(password, user.passwordHash))) {
-        return NextResponse.json({ error: INVALID_CREDENTIALS }, { status: 401 })
+        return NextResponse.json(
+          { error: INVALID_CREDENTIALS },
+          { status: 401 }
+        )
       }
 
       if (user.role === "admin") {
@@ -45,8 +48,8 @@ export async function POST(request: NextRequest) {
         : undefined
       if (!profile) {
         return NextResponse.json(
-          { error: "Compte bailleur mal configuré : SCI introuvable." },
-          { status: 500 },
+          { error: "Compte bailleur mal configuré : profil introuvable." },
+          { status: 500 }
         )
       }
 
@@ -65,14 +68,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: NOT_ACTIVATED }, { status: 401 })
       }
       if (!(await verifyPassword(password, tenant.passwordHash))) {
-        return NextResponse.json({ error: INVALID_CREDENTIALS }, { status: 401 })
+        return NextResponse.json(
+          { error: INVALID_CREDENTIALS },
+          { status: 401 }
+        )
       }
 
       const profile = await getProfileByPageId(tenant.profilePageId)
       if (!profile) {
         return NextResponse.json(
-          { error: "Compte locataire mal configuré : SCI introuvable." },
-          { status: 500 },
+          { error: "Compte locataire mal configuré : profil introuvable." },
+          { status: 500 }
         )
       }
 
@@ -91,7 +97,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur inconnue." },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }

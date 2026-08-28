@@ -13,7 +13,7 @@ type BiensProviderProps = {
   children: React.ReactNode
 }
 
-/** Partage la liste des biens d'une SCI entre les pages Biens/Locataires/Quittances. */
+/** Partage la liste des biens d'un bailleur entre les pages Biens/Locataires/Quittances. */
 export function BiensProvider({ profileId, children }: BiensProviderProps) {
   const value = useBiens(profileId)
   return <BiensContext.Provider value={value}>{children}</BiensContext.Provider>

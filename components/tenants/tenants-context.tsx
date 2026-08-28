@@ -13,7 +13,7 @@ type TenantsProviderProps = {
   children: React.ReactNode
 }
 
-/** Partage la liste des locataires d'une SCI entre les pages Locataires/Quittances/Accès. */
+/** Partage la liste des locataires d'un bailleur entre les pages Locataires/Quittances/Accès. */
 export function TenantsProvider({ profileId, children }: TenantsProviderProps) {
   const value = useTenants(profileId)
   return (
