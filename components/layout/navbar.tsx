@@ -5,7 +5,6 @@ import { UserGroupIcon } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 
 import { LogoutButton } from "@/components/auth/logout-button"
-import { ImpersonateDialog } from "@/components/layout/impersonate-dialog"
 import { buttonVariants } from "@/components/ui/button"
 import type { SessionPayload } from "@/lib/auth/jwt"
 import { cn } from "@/lib/utils"
@@ -38,7 +37,6 @@ export function Navbar({ role, impersonating = false }: NavbarProps) {
               <span className="sr-only">Administration</span>
             </Link>
           ) : null}
-          {role === "admin" && !impersonating ? <ImpersonateDialog /> : null}
           <LogoutButton />
         </div>
       </div>

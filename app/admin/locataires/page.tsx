@@ -4,7 +4,13 @@ import { getAdminData } from "@/lib/admin-data"
 export const dynamic = "force-dynamic"
 
 export default async function AdminLocatairesPage() {
-  const { tenants, sciByPageId } = await getAdminData()
+  const { tenants, sciByPageId, profileIdByPageId } = await getAdminData()
 
-  return <AdminLocatairesView tenants={tenants} sciByPageId={sciByPageId} />
+  return (
+    <AdminLocatairesView
+      tenants={tenants}
+      sciByPageId={sciByPageId}
+      profileIdByPageId={profileIdByPageId}
+    />
+  )
 }

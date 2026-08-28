@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { verifySessionToken, type SessionPayload } from "@/lib/auth/jwt"
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session"
+import { IMPERSONATION_COOKIE_NAME } from "@/lib/auth/impersonation"
 
 function isAuthPage(pathname: string): boolean {
   return pathname === "/login" || pathname === "/activation"
@@ -12,7 +13,7 @@ function homeFor(session: SessionPayload): string {
   if (session.role === "locataire") {
     return `/${session.profileId}/tenants/${session.tenantId}`
   }
-  return "/"
+  return "/admin"
 }
 
 export default async function proxy(request: NextRequest) {
@@ -36,7 +37,7 @@ export default async function proxy(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         { error: "Authentification requise." },
-        { status: 401 },
+        { status: 401 }
       )
     }
     const loginUrl = new URL("/login", request.url)
@@ -45,6 +46,12 @@ export default async function proxy(request: NextRequest) {
   }
 
   if (session.role === "admin") {
+    const isImpersonating = Boolean(
+      request.cookies.get(IMPERSONATION_COOKIE_NAME)?.value
+    )
+    if (pathname === "/" && !isImpersonating) {
+      return NextResponse.redirect(new URL("/admin", request.url))
+    }
     return NextResponse.next()
   }
 

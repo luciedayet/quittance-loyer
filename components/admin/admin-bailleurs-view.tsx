@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { EmailModal } from "@/components/admin/email-invite"
+import { ImpersonateButton } from "@/components/admin/impersonate-button"
 import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Delete02Icon } from "@hugeicons/core-free-icons"
@@ -347,6 +348,7 @@ export function AdminBailleursView({
                 Compte bailleur
               </th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground"></th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground"></th>
             </tr>
           </thead>
           <tbody>
@@ -372,6 +374,11 @@ export function AdminBailleursView({
                       profileId={profile.id}
                       existingBailleur={bailleur}
                       onInvited={refresh}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <ImpersonateButton
+                      payload={{ role: "bailleur", profileId: profile.id }}
                     />
                   </td>
                   <td className="px-4 py-3">

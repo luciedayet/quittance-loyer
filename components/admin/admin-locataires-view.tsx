@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { CopyEmailButton } from "@/components/admin/email-invite"
+import { ImpersonateButton } from "@/components/admin/impersonate-button"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { AdminTenant } from "@/lib/notion/tenants"
@@ -111,11 +112,13 @@ function TenantInviteRow({
 type AdminLocatairesViewProps = {
   tenants: AdminTenant[]
   sciByPageId: Record<string, string>
+  profileIdByPageId: Record<string, string>
 }
 
 export function AdminLocatairesView({
   tenants,
   sciByPageId,
+  profileIdByPageId,
 }: AdminLocatairesViewProps) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-border">
@@ -131,6 +134,7 @@ export function AdminLocatairesView({
             <th className="px-4 py-3 text-left font-medium text-muted-foreground">
               Accès locataire
             </th>
+            <th className="px-4 py-3 text-left font-medium text-muted-foreground"></th>
           </tr>
         </thead>
         <tbody>
@@ -138,6 +142,9 @@ export function AdminLocatairesView({
             const sciName = tenant.profilePageId
               ? (sciByPageId[tenant.profilePageId] ?? "–")
               : "–"
+            const profileId = tenant.profilePageId
+              ? profileIdByPageId[tenant.profilePageId]
+              : undefined
             return (
               <tr
                 key={tenant.id}
@@ -154,6 +161,17 @@ export function AdminLocatairesView({
                     verificationCode={tenant.verificationCode}
                     hasAccount={tenant.hasAccount}
                   />
+                </td>
+                <td className="px-4 py-3">
+                  {profileId ? (
+                    <ImpersonateButton
+                      payload={{
+                        role: "locataire",
+                        profileId,
+                        tenantId: tenant.id,
+                      }}
+                    />
+                  ) : null}
                 </td>
               </tr>
             )

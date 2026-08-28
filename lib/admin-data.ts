@@ -15,9 +15,11 @@ export async function getAdminData() {
 
   const sciByPageId: Record<string, string> = {}
   const profilePageIdBySlug: Record<string, string> = {}
+  const profileIdByPageId: Record<string, string> = {}
   for (const { profile, pageId } of profilesWithPageIds) {
     sciByPageId[pageId] = profile.sciName
     profilePageIdBySlug[profile.id] = pageId
+    profileIdByPageId[pageId] = profile.id
   }
 
   const bailleurByProfilePageId: Record<string, NotionUser> = {}
@@ -49,6 +51,7 @@ export async function getAdminData() {
     tenantCountByProfileId,
     bailleurByProfilePageId,
     profilePageIdBySlug,
+    profileIdByPageId,
   }
 }
 

@@ -1,16 +1,7 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { getImpersonation } from "@/lib/auth/impersonation"
 import { getSession } from "@/lib/auth/session"
-import { getProfiles } from "@/lib/profiles"
 
 export const dynamic = "force-dynamic"
 
@@ -29,25 +20,7 @@ export default async function Page() {
     redirect(`/${impersonation.profileId}/tenants/${impersonation.tenantId}`)
   }
 
-  const profiles = await getProfiles()
+  if (session?.role === "admin") redirect("/admin")
 
-  return (
-    <div className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-8 p-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {profiles.map((profile) => (
-          <Link key={profile.id} href={`/${profile.id}`} className="group">
-            <Card className="h-full transition-colors group-hover:bg-muted/40">
-              <CardHeader>
-                <CardTitle>{profile.sciName}</CardTitle>
-                <CardDescription>{profile.city}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium text-primary">Gérer →</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-    </div>
-  )
+  redirect("/login")
 }
