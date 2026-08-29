@@ -1,113 +1,10 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useState } from "react"
 
-import { CopyEmailButton } from "@/components/admin/email-invite"
 import { ImpersonateButton } from "@/components/admin/impersonate-button"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { TenantInviteRow } from "@/components/tenants/tenant-invite-row"
 import type { AdminTenant } from "@/lib/notion/tenants"
-
-function TenantInviteRow({
-  tenantId,
-  currentEmail,
-  verificationCode,
-  hasAccount,
-}: {
-  tenantId: string
-  currentEmail: string | null | undefined
-  verificationCode: string | null | undefined
-  hasAccount: boolean
-}) {
-  const router = useRouter()
-  const [email, setEmail] = useState(currentEmail ?? "")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [fresh, setFresh] = useState<{ email: string; code: string } | null>(
-    null
-  )
-
-  const displayCode = fresh?.code ?? verificationCode
-  const displayEmail = fresh?.email ?? currentEmail
-
-  async function handleInvite() {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/tenants/${tenantId}/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Erreur")
-      setFresh({ email: data.email, code: data.verificationCode })
-      router.refresh()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (hasAccount) {
-    return (
-      <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-        <span className="size-1.5 rounded-full bg-current" />
-        Compte activé
-      </span>
-    )
-  }
-
-  if (displayEmail && displayCode) {
-    return (
-      <div className="flex flex-wrap items-center gap-2">
-        <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs tracking-wider">
-          {displayCode}
-        </code>
-        <CopyEmailButton
-          email={displayEmail}
-          firstName={undefined}
-          activationCode={displayCode}
-          tenant
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setFresh(null)
-            setEmail(displayEmail)
-          }}
-        >
-          Re-inviter
-        </Button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Input
-        type="email"
-        placeholder="email@exemple.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="h-8 w-48 text-sm"
-      />
-      <Button
-        type="button"
-        size="sm"
-        disabled={loading || !email}
-        onClick={handleInvite}
-      >
-        {loading ? "Envoi…" : "Inviter"}
-      </Button>
-      {error ? <span className="text-xs text-destructive">{error}</span> : null}
-    </div>
-  )
-}
 
 type AdminLocatairesViewProps = {
   tenants: AdminTenant[]
@@ -120,6 +17,12 @@ export function AdminLocatairesView({
   sciByPageId,
   profileIdByPageId,
 }: AdminLocatairesViewProps) {
+  const router = useRouter()
+
+  function refresh() {
+    router.refresh()
+  }
+
   return (
     <div className="overflow-x-auto rounded-2xl border border-border">
       <table className="w-full text-sm">
@@ -160,6 +63,7 @@ export function AdminLocatairesView({
                     currentEmail={tenant.email}
                     verificationCode={tenant.verificationCode}
                     hasAccount={tenant.hasAccount}
+                    onUpdated={refresh}
                   />
                 </td>
                 <td className="px-4 py-3">

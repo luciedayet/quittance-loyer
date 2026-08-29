@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
-import { EmailModal } from "@/components/admin/email-invite"
+import { EmailModal } from "@/components/shared/email-invite"
 import { ImpersonateButton } from "@/components/admin/impersonate-button"
 import { Button } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
